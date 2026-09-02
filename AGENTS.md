@@ -1,0 +1,13 @@
+<!-- vsk-dev:start -->
+## Dev workflow
+
+Read `.vegastack/dev.md` for this project's stack, commands, and workflow knobs. The workflow's stages are the dev-family skills: dev-setup (bootstrap) · dev-intake (ideas to briefs) · dev-plan (approved briefs to plans) · dev-architect (stack judgment) · dev-implement (dark builds) · dev-debug (reproduce-first fixes) · dev-review (independent review) · dev-ship (gated landing) · dev-status (the operator's board) · dev-chronicle (the project's story).
+
+Work flows through GitHub issues. An issue labeled `ready` carries the user's recorded approval and a complete brief — implement it end to end per the `dev-implement` skill, post the evidence in the issue, and hand it back with `for-operator`. Start only on `ready` issues. The workflow vocabulary is the labels dev.md's `labels:` knob names (defaults — state: `needs-operator` waiting on the user → `needs-plan` awaiting the planning stage → `ready` approved → `working` claimed → `for-operator` result awaiting review; modifiers: `risky` for security/money/data/production, scope `research`/`quick-build`/`full-plan`, `epic` on map parents) — use them and no others. Artifact formats (comment markers, ledger, revisions, operator identity) follow the dev-setup skill's `references/conventions.md`.
+
+**Nothing ships without the operator's explicit instruction** — no push to the default branch, merge, tag, publish, or deploy on green checks, schedules, or standing approvals alone. The `gates` knob in dev.md changes how many of those actions one instruction covers, never whether an instruction is needed. Behavior changes carry their changelog entry per dev.md's `changelog:` knob before hand-back; after merge, the `## Ship` runbook in dev.md says what happens next and which steps need the operator's word.
+
+Directional decisions — see `## Decisions` in dev.md for what qualifies — get one dated line in the register dev.md names. When any session, skill-driven or not, settles a choice that passes that test, propose the line and add it only on the user's yes.
+
+dev.md is the project's self-maintained handbook: when a gotcha, surprise, or repeated instruction surfaces in any run, propose one line for the right dev.md section that would have prevented it — fold into existing lines, never append a log — and add it on the user's yes.
+<!-- vsk-dev:end -->
