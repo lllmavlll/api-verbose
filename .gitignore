@@ -3,14 +3,16 @@ node_modules/
 .pnp
 .pnp.js
 
-# Build output
-dist/
-dist-ssr/
+# Next.js
+.next/
+out/
 build/
-*.local
+next-env.d.ts
+*.tsbuildinfo
 
-# Vite
-.vite/
+# Cloudflare / OpenNext
+.open-next/
+.wrangler/
 
 # Env — values never committed
 .env
