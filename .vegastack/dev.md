@@ -4,7 +4,7 @@ This file is the project's handbook and its only process document: short directi
 
 repo: dev-mahesh-peerxp/api-verbose · default branch main
 stack: Next.js + TypeScript (Tailwind, shadcn/ui components, Zustand, CodeMirror 6, Dexie/IndexedDB); the CORS relay is a Next.js Route Handler, no separate service. The `## Architecture` section carries the rest
-commands: test `npm test` · build `npm run build` · dev `npm run dev`   # TODO confirm once package.json is scaffolded (Next.js: next dev/build/start)
+commands: test `npm test` · build `npm run build` · dev `npm run dev`
 authority: SOW.md → this file → skill defaults
 
 ## Knobs
@@ -37,7 +37,7 @@ Line prefixes: `auto:` (agent just does it) · `ask:` (operator's word first) ·
 
 ## Verify — how to see it working (pre-merge)
 
-- start: `npm run dev` · http://localhost:3000   # Next.js default port
+- start: `npm run dev` · http://localhost:3000
 - Send loop: pick a method + URL, hit send (⌘↵), response renders with status/timing/size
 - CORS path: a cross-origin request that browsers block falls back through the Next.js relay route handler and still returns
 - Response view: JSON highlighted in code blocks; Headers / Cookies / Tests tabs populate
@@ -85,7 +85,7 @@ Dark execution ends and the operator decides when work would involve: a change o
 
 ## Project rules
 
-- Open source, MIT — keep all dependencies MIT/permissive (shadcn/ui and Radix are MIT ✓).
+- Open source, MIT — direct dependencies stay MIT/permissive; only the exact LGPL/MPL transitive packages recorded in `THIRD_PARTY_NOTICES.md` are exceptions, enforced by `npm run license:check`.
 - UI components come from shadcn/ui — add via the shadcn CLI into `components/ui` and compose; only hand-roll when no primitive fits.
 - Non-goals in SOW §02 are firm (no accounts/cloud sync, no WebSocket/GraphQL/gRPC, no scripting sandbox). Environments and collection files are the only sanctioned fast-follows.
 - Local-first: no server-side persistence of user data; the relay route handler proxies, it never stores.

@@ -11,3 +11,13 @@ Directional decisions — see `## Decisions` in dev.md for what qualifies — ge
 
 dev.md is the project's self-maintained handbook: when a gotcha, surprise, or repeated instruction surfaces in any run, propose one line for the right dev.md section that would have prevented it — fold into existing lines, never append a log — and add it on the user's yes.
 <!-- vsk-dev:end -->
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
