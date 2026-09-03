@@ -1,17 +1,14 @@
 import type { Grammar } from "./detect";
-
-export type HlTheme = "light" | "dark";
-
-const SHIKI_THEME: Record<HlTheme, "github-light" | "github-dark"> = {
-  light: "github-light",
-  dark: "github-dark",
-};
+import { SHIKI_THEMES, type ShikiThemeName } from "@/lib/theme/shiki-theme";
 
 async function loadHighlighter() {
-  const { createHighlighter } = await import("shiki");
+  const { createCssVariablesTheme, createHighlighter } = await import("shiki");
 
   return createHighlighter({
-    themes: ["github-light", "github-dark"],
+    themes: [
+      createCssVariablesTheme({ name: SHIKI_THEMES.light }),
+      createCssVariablesTheme({ name: SHIKI_THEMES.dark }),
+    ],
     langs: ["json", "xml", "html"],
   });
 }
@@ -47,7 +44,7 @@ export function formatForGrammar(bodyText: string, grammar: Grammar): string {
 export async function highlightToHtml(
   code: string,
   grammar: Grammar,
-  theme: HlTheme,
+  theme: ShikiThemeName,
 ): Promise<string> {
   if (grammar === "text") {
     return `<pre class="shiki"><code>${escapeHtml(code)}</code></pre>`;
@@ -56,6 +53,6 @@ export async function highlightToHtml(
   const highlighter = await getHighlighter();
   return highlighter.codeToHtml(code, {
     lang: grammar,
-    theme: SHIKI_THEME[theme],
+    theme,
   });
 }

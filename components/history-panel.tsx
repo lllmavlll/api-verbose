@@ -42,7 +42,7 @@ import {
   setHistoryStorageWriteUnavailable,
   subscribeToHistoryStorage,
 } from "@/lib/db/storage-status";
-import { METHOD_COLOR_CLASS } from "@/lib/http/method-colors";
+import { methodColorClass } from "@/lib/http/method-color";
 import { useRequestStore } from "@/lib/store/request-store";
 import { cn } from "@/lib/utils";
 
@@ -284,7 +284,7 @@ export function HistoryPanel() {
               <span
                 className={cn(
                   "font-mono text-xs font-semibold",
-                  METHOD_COLOR_CLASS[entry.spec.method],
+                  methodColorClass(entry.spec.method),
                 )}
               >
                 {entry.spec.method}

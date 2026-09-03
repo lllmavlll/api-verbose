@@ -28,7 +28,7 @@ import {
   highlightToHtml,
 } from "@/lib/render/highlight";
 import { contentTypeOf, formatSize } from "@/lib/render/meta";
-import { useActiveTheme } from "@/lib/render/use-active-theme";
+import { useShikiTheme } from "@/lib/theme/use-shiki-theme";
 
 type ResponseView = "pretty" | "raw" | "preview";
 
@@ -123,7 +123,7 @@ export function ResponseBody({ result }: { result: SendSuccess }) {
     html: string;
     input: string;
   } | null>(null);
-  const theme = useActiveTheme();
+  const theme = useShikiTheme();
 
   const prettyBody = useMemo(
     () => formatForGrammar(bodyText, grammar),

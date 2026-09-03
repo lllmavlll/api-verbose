@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CopyAsCodeMenu } from "@/components/copy-as-code-menu";
 import { HistoryPanel } from "@/components/history-panel";
@@ -10,21 +10,17 @@ import { RequestBar } from "@/components/request-bar";
 import { RequestBody } from "@/components/request-body";
 import { RequestTabs } from "@/components/request-tabs";
 import { ResponsePanel } from "@/components/response-panel";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useCoreCommands } from "@/components/use-core-commands";
 import { logSend } from "@/lib/db/log-send";
 import { sendRequest } from "@/lib/http/send-request";
+import { useHydrated } from "@/hooks/use-hydrated";
 import type { SendResult } from "@/lib/http/types";
 import { composeRequest } from "@/lib/request/compose";
 import { useRequestStore } from "@/lib/store/request-store";
 
-const subscribeToHydration = () => () => {};
-
 export default function Home() {
-  const hydrated = useSyncExternalStore(
-    subscribeToHydration,
-    () => true,
-    () => false,
-  );
+  const hydrated = useHydrated();
   const setMethod = useRequestStore((state) => state.setMethod);
   const [pending, setPending] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -98,24 +94,24 @@ export default function Home() {
                 cloud sync.
               </p>
             </div>
-            {pending ? (
-              <p
-                aria-live="polite"
-                className="font-mono text-sm text-muted-foreground"
-              >
-                Sending · {Math.round(elapsedMs)} ms
-              </p>
-            ) : null}
+            <div className="flex items-center gap-3">
+              {pending ? (
+                <p
+                  aria-live="polite"
+                  className="font-mono text-sm text-muted-foreground"
+                >
+                  Sending · {Math.round(elapsedMs)} ms
+                </p>
+              ) : null}
+              <ThemeToggle />
+            </div>
           </header>
 
           <section
             className="mb-5 rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur sm:p-5"
             aria-busy={!hydrated}
           >
-            <fieldset
-              className="min-w-0 border-0 p-0"
-              disabled={!hydrated}
-            >
+            <fieldset className="min-w-0 border-0 p-0" disabled={!hydrated}>
               <RequestBar pending={pending} onSubmit={handleSubmit} />
               <div
                 aria-label="Request import and export"

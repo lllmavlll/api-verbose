@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Verbose now feels at home in light and dark ([#12](https://github.com/dev-mahesh-peerxp/api-verbose/issues/12))
+
+- **What:** Verbose now follows the browser's OS theme on a first visit and offers a visible Light, Dark, or System control. Explicit choices survive reloads, method colors remain readable in either palette, and an already-visible response re-highlights when the theme changes.
+- **Why:** Developers needed a dark-first-quality interface that still respects their system and remains fully usable in light mode without a wrong-theme flash.
+- **How it went:** Preflight caught that the original dark default contradicted the OS-light acceptance case, so the operator approved a system default before implementation. Browser testing then exposed a real hydration mismatch in the theme icon; a hydration-stable first render fixed it while preserving the pre-paint theme class.
+- **Changed:** OS-aware first paint · Light/Dark/System menu · per-browser persistence · live OS tracking in System mode · two-theme method and Shiki tokens · response recoloring without re-send · hydration regression coverage
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/12-dark-mode-theming
+
 ## 03-09-2026 — Recent requests now survive a reload without saving secrets ([#8](https://github.com/dev-mahesh-peerxp/api-verbose/issues/8))
 
 - **What:** Every resolved send now appears in a browser-local, searchable history that survives reloads and stays bounded at 500 entries. A developer can replay the method and URL without auto-sending, navigate recent requests from the URL field, export the log as JSON, or clear it after confirmation.

@@ -31,27 +31,32 @@ test("JSON renders highlighted in both themes and toggles to byte-exact Raw", as
   let requestCount = 0;
   await page.route("https://api.test/echo", (route) => {
     requestCount += 1;
-    return route.fulfill({ status: 200, contentType: "application/json", body });
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body,
+    });
   });
   await page.goto("/");
-  await page.evaluate(() => {
-    document.documentElement.setAttribute("data-theme", "dark");
-    document.documentElement.classList.add("dark");
-  });
+  await page.getByRole("button", { name: /toggle theme/i }).click();
+  await page.getByRole("menuitem", { name: /^dark$/i }).click();
 
   await send(page, "https://api.test/echo");
   const highlighted = page.locator("pre.shiki");
   await expect(highlighted).toBeVisible({ timeout: 15_000 });
-  const darkStyle = await highlighted.getAttribute("style");
+  const keyword = highlighted
+    .locator('span[style*="--shiki-token-keyword"]')
+    .first();
+  const darkColor = await keyword.evaluate(
+    (element) => getComputedStyle(element).color,
+  );
   await screenshot(page, "render-pretty-dark.png");
 
-  await page.evaluate(() => {
-    document.documentElement.setAttribute("data-theme", "light");
-    document.documentElement.classList.remove("dark");
-  });
+  await page.getByRole("button", { name: /toggle theme/i }).click();
+  await page.getByRole("menuitem", { name: /^light$/i }).click();
   await expect
-    .poll(() => highlighted.getAttribute("style"))
-    .not.toBe(darkStyle);
+    .poll(() => keyword.evaluate((element) => getComputedStyle(element).color))
+    .not.toBe(darkColor);
   await screenshot(page, "render-pretty-light.png");
 
   const responseTabs = page.getByRole("tablist", {
@@ -104,9 +109,17 @@ test("HTML Preview is sandboxed, script-free, and makes no outbound requests", a
   );
   await expect(frameElement).toHaveAttribute("referrerpolicy", "no-referrer");
   await expect(frameElement).toHaveAttribute("csp", /default-src 'none'/);
-  const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+  const frame = page
+    .frames()
+    .find((candidate) => candidate !== page.mainFrame());
   expect(frame).toBeDefined();
-  expect(await frame?.evaluate(() => (window as typeof window & { __previewScriptRan?: boolean }).__previewScriptRan)).toBeUndefined();
+  expect(
+    await frame?.evaluate(
+      () =>
+        (window as typeof window & { __previewScriptRan?: boolean })
+          .__previewScriptRan,
+    ),
+  ).toBeUndefined();
   for (const name of ["Outbound link", "Relative link"]) {
     const box = await frame?.getByRole("link", { name }).boundingBox();
     expect(box).toBeDefined();
@@ -118,7 +131,9 @@ test("HTML Preview is sandboxed, script-free, and makes no outbound requests", a
   await screenshot(page, "render-preview-html.png");
 });
 
-test("textual and binary image responses load from local blob URLs", async ({ page }) => {
+test("textual and binary image responses load from local blob URLs", async ({
+  page,
+}) => {
   await page.route("https://api.test/image.svg", (route) =>
     route.fulfill({
       status: 200,
@@ -143,7 +158,9 @@ test("textual and binary image responses load from local blob URLs", async ({ pa
   const image = page.getByAltText("Response preview");
   await expect(image).toHaveAttribute("src", /^blob:/);
   await expect
-    .poll(() => image.evaluate((element: HTMLImageElement) => element.naturalWidth))
+    .poll(() =>
+      image.evaluate((element: HTMLImageElement) => element.naturalWidth),
+    )
     .toBe(40);
 
   await send(page, "https://api.test/image.png");
@@ -157,7 +174,9 @@ test("textual and binary image responses load from local blob URLs", async ({ pa
     .toBe(1);
 });
 
-test("a real redirected fetch shows its start and final URL", async ({ page }) => {
+test("a real redirected fetch shows its start and final URL", async ({
+  page,
+}) => {
   const server = createServer((request, response) => {
     response.setHeader("Access-Control-Allow-Origin", "*");
     if (request.url === "/start") {
@@ -210,7 +229,9 @@ test("an over-cap response falls back to Raw without starting Shiki", async ({
   await expect(page.locator("pre.shiki")).toHaveCount(0);
 });
 
-test("a compressed response is capped by its decoded body size", async ({ page }) => {
+test("a compressed response is capped by its decoded body size", async ({
+  page,
+}) => {
   const decoded = `{"value":"${"x".repeat(1_000_000)}"}`;
   const compressed = gzipSync(decoded);
   const server = createServer((_request, response) => {

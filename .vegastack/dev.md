@@ -56,7 +56,7 @@ Line prefixes: `auto:` (agent just does it) · `ask:` (operator's word first) ·
 - Component system: **shadcn/ui** (Radix + Tailwind) for all UI components — reach for a shadcn primitive before hand-rolling one; extend via the generated component in `components/ui`, don't fork upstream
 - Monospace-forward: a dev mono (e.g. JetBrains Mono) for all data/headers/status/code; a clean grotesk for UI chrome
 - Method color-coding (GET/POST/PUT/PATCH/DELETE) consistent app-wide — as Tailwind/theme tokens, not per-component hex
-- Dark mode first-class and default; respects OS preference; persisted per browser (shadcn theming)
+- Themes are Light / Dark / System: first visit follows the OS with a dark unresolved fallback; explicit choices persist per browser under `verbose-theme`.
 - Keyboard-driven: ⌘K palette (shadcn Command), ⌘↵ send, ⌘\ focus URL, arrow-nav history
 
 ## Architecture

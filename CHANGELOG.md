@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Dark/light/system theming with an OS-aware first visit, persisted toggle, and theme-aware response highlighting.
 - Request history persisted to IndexedDB (Dexie) — searchable by method and URL, one-click replay, capped at 500 entries, with clear and JSON export; automatic history stores no credentials, arbitrary headers, auth configuration, or request bodies.
 - Response Headers and Cookies tables with parsed Set-Cookie attributes.
 - Import curl commands and copy the current request as curl / fetch / Python.

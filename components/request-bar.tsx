@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { METHOD_COLOR_CLASS } from "@/lib/http/method-colors";
+import { methodColorClass } from "@/lib/http/method-color";
 import { HTTP_METHODS, type HttpMethod } from "@/lib/http/types";
 import { isAbsoluteHttpUrl } from "@/lib/http/url";
 import { useRequestStore } from "@/lib/store/request-store";
@@ -89,7 +89,7 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
             aria-label="HTTP method"
             className={cn(
               "h-10 w-full font-mono sm:w-32",
-              METHOD_COLOR_CLASS[method],
+              methodColorClass(method),
             )}
           >
             <SelectValue />
@@ -97,7 +97,7 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
           <SelectContent align="start">
             {HTTP_METHODS.map((item) => (
               <SelectItem
-                className={cn("font-mono", METHOD_COLOR_CLASS[item])}
+                className={cn("font-mono", methodColorClass(item))}
                 key={item}
                 value={item}
               >

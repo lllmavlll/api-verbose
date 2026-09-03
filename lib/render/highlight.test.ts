@@ -15,16 +15,18 @@ it("leaves malformed JSON raw", () => {
 });
 
 it("produces a shiki pre for the requested theme", async () => {
-  const light = await highlightToHtml('{"a":1}', "json", "light");
-  const dark = await highlightToHtml('{"a":1}', "json", "dark");
+  const light = await highlightToHtml('{"a":1}', "json", "github-light");
+  const dark = await highlightToHtml('{"a":1}', "json", "github-dark");
 
   expect(light).toMatch(/<pre[^>]*class="[^"]*shiki/);
   expect(light).toContain('"a"');
+  expect(light).toContain("color:var(--shiki-token-keyword)");
+  expect(light).toContain("color:var(--shiki-token-constant)");
   expect(dark).not.toBe(light);
 });
 
 it("escapes plain text without tokenizing", async () => {
-  const html = await highlightToHtml("<not-tokenized>", "text", "dark");
+  const html = await highlightToHtml("<not-tokenized>", "text", "github-dark");
 
   expect(html).toContain("&lt;not-tokenized&gt;");
 });
