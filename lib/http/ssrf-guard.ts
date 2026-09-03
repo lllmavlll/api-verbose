@@ -88,7 +88,15 @@ function isBlockedIpv4(address: string): boolean {
     a === 127 ||
     (a === 169 && b === 254) ||
     (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
+    (a === 192 && b === 0 && octets[2] === 0) ||
+    (a === 192 && b === 0 && octets[2] === 2) ||
+    (a === 192 && b === 88 && octets[2] === 99) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && octets[2] === 100) ||
+    (a === 203 && b === 0 && octets[2] === 113) ||
+    a >= 224 ||
+    address === "168.63.129.16"
   );
 }
 
@@ -126,7 +134,40 @@ export function isBlockedAddress(address: string): boolean {
     return isBlockedIpv4(mapped);
   }
 
-  return isUnspecified || isLoopback || isUniqueLocal || isLinkLocal;
+  const isIpv4Compatible = groups.slice(0, 6).every((group) => group === 0);
+  const isTranslationPrefix =
+    groups[0] === 0x64 &&
+    groups[1] === 0xff9b &&
+    (groups[2] === 0 || groups[2] === 1);
+  const isDiscardOnly =
+    groups[0] === 0x100 && groups.slice(1, 4).every((group) => group === 0);
+  const isProtocolAssignment =
+    groups[0] === 0x2001 && groups[1] <= 0x01ff;
+  const isDocumentationV6 =
+    groups[0] === 0x2001 && groups[1] === 0x0db8;
+  const isSixToFour = groups[0] === 0x2002;
+  const isDocumentation =
+    groups[0] === 0x3fff && (groups[1] & 0xf000) === 0;
+  const isSegmentRouting = groups[0] === 0x5f00;
+  const isMulticast = (groups[0] & 0xff00) === 0xff00;
+  const isOutsideGlobalUnicast = (groups[0] & 0xe000) !== 0x2000;
+
+  return (
+    isUnspecified ||
+    isLoopback ||
+    isUniqueLocal ||
+    isLinkLocal ||
+    isIpv4Compatible ||
+    isTranslationPrefix ||
+    isDiscardOnly ||
+    isProtocolAssignment ||
+    isDocumentationV6 ||
+    isSixToFour ||
+    isDocumentation ||
+    isSegmentRouting ||
+    isMulticast ||
+    isOutsideGlobalUnicast
+  );
 }
 
 export function checkUrl(

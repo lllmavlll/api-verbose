@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import * as relayClient from "./relay-client";
 import { sendRequest } from "./send-request";
-import type { HttpMethod, RequestSpec } from "./types";
+import type { Body, HttpMethod, RequestSpec } from "./types";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -19,6 +19,109 @@ const spec = (method: HttpMethod, url: string): RequestSpec => ({
 });
 
 describe("sendRequest", () => {
+  it.each<[Body, string, string]>([
+    [
+      { kind: "json", text: '{"name":"Ada"}' },
+      '{"name":"Ada"}',
+      "application/json",
+    ],
+    [
+      { kind: "raw", text: "hello", contentType: "text/plain" },
+      "hello",
+      "text/plain",
+    ],
+    [
+      {
+        kind: "form",
+        fields: [
+          { id: "one", key: "name", value: "Ada Lovelace", enabled: true },
+          { id: "two", key: "skip", value: "ignored", enabled: false },
+        ],
+      },
+      "name=Ada+Lovelace",
+      "application/x-www-form-urlencoded",
+    ],
+  ])("sends a composed %s body and its default content type directly", async (body, expectedBody, expectedType) => {
+    let boundaryRequest: Request | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        boundaryRequest = new Request(input, init);
+        return new Response("ok");
+      }),
+    );
+
+    await sendRequest({
+      ...spec("POST", "https://api.test/body"),
+      body,
+    });
+
+    expect(await boundaryRequest?.text()).toBe(expectedBody);
+    expect(boundaryRequest?.headers.get("content-type")).toBe(expectedType);
+  });
+
+  it("preserves an explicit content type for a composed body", async () => {
+    let boundaryRequest: Request | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        boundaryRequest = new Request(input, init);
+        return new Response("ok");
+      }),
+    );
+
+    await sendRequest({
+      ...spec("POST", "https://api.test/body"),
+      headers: [{
+        id: "content-type",
+        key: "Content-Type",
+        value: "application/vnd.api+json",
+        enabled: true,
+      }],
+      body: { kind: "json", text: "{}" },
+    });
+
+    expect(boundaryRequest?.headers.get("content-type")).toBe(
+      "application/vnd.api+json",
+    );
+  });
+
+  it("serializes the same composed body through the real relay client boundary", async () => {
+    let relayPayload: unknown;
+    vi.stubGlobal("fetch", vi.fn(async (input, init) => {
+      if (input === "https://api.test/body") {
+        throw new TypeError("Failed to fetch");
+      }
+
+      const relayRequest = new Request(
+        new URL(String(input), "http://app.local"),
+        init,
+      );
+      relayPayload = await relayRequest.json();
+      return Response.json({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: [],
+        bodyBase64: "b2s=",
+        sizeBytes: 2,
+      });
+    }));
+
+    const result = await sendRequest({
+      ...spec("PUT", "https://api.test/body"),
+      body: { kind: "raw", text: "hello", contentType: "text/plain" },
+    });
+
+    expect(relayPayload).toEqual({
+      method: "PUT",
+      url: "https://api.test/body",
+      headers: [["Content-Type", "text/plain"]],
+      body: "hello",
+    });
+    expect(result).toMatchObject({ ok: true, via: "relay" });
+  });
+
   it("appends headers from the request spec to fetch", async () => {
     const fetchSpy = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -53,9 +156,9 @@ describe("sendRequest", () => {
           status: 200,
           statusText: "OK",
           headers: new Headers(),
-          text: async () => {
+          arrayBuffer: async () => {
             clock = 900;
-            return "slow body";
+            return new TextEncoder().encode("slow body").buffer;
           },
         } as Response;
       }),
@@ -86,7 +189,7 @@ describe("sendRequest", () => {
       ok: true,
       status: 200,
       isJson: true,
-      bodyText: '{"a":1}',
+      body: { encoding: "utf8", text: '{"a":1}' },
       via: "direct",
     });
     if (result.ok) {
@@ -117,7 +220,7 @@ describe("sendRequest", () => {
       ok: true,
       status: 404,
       isJson: false,
-      bodyText: "nope",
+      body: { encoding: "utf8", text: "nope" },
       via: "direct",
     });
   });
@@ -158,7 +261,12 @@ describe("sendRequest", () => {
       status: 200,
       statusText: "OK",
       headers: [["content-type", "application/json"]],
-      bodyText: '{"relayed":true}',
+      bodyBase64: "eyJyZWxheWVkIjp0cnVlfQ==",
+      sizeBytes: 16,
+      redirects: [
+        { url: "https://api.test/start", status: 302 },
+        { url: "https://api.test/x", status: 200 },
+      ],
     });
 
     const result = await sendRequest(spec("GET", "https://api.test/x"));
@@ -172,8 +280,13 @@ describe("sendRequest", () => {
       ok: true,
       status: 200,
       isJson: true,
-      bodyText: '{"relayed":true}',
+      body: { encoding: "utf8", text: '{"relayed":true}' },
       via: "relay",
+      sizeBytes: 16,
+      redirects: [
+        { url: "https://api.test/start", status: 302 },
+        { url: "https://api.test/x", status: 200 },
+      ],
     });
   });
 
@@ -189,7 +302,8 @@ describe("sendRequest", () => {
       status: 200,
       statusText: "OK",
       headers: [],
-      bodyText: "ok",
+      bodyBase64: "b2s=",
+      sizeBytes: 2,
     });
 
     await sendRequest({
@@ -329,21 +443,29 @@ describe("sendRequest", () => {
     expect(relaySpy).not.toHaveBeenCalled();
   });
 
-  it("prefers a valid Content-Length header for response size", async () => {
+  it("uses decoded body bytes instead of a compressed Content-Length", async () => {
+    const decoded = new Uint8Array(1_000_001);
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
-        Promise.resolve(
-          new Response("short", {
-            headers: { "Content-Length": "100" },
+        Promise.resolve({
+          status: 200,
+          statusText: "OK",
+          redirected: false,
+          url: "https://api.test/x",
+          headers: new Headers({
+            "Content-Encoding": "gzip",
+            "Content-Length": "100",
+            "Content-Type": "application/json",
           }),
-        ),
+          arrayBuffer: async () => decoded.buffer,
+        } as Response),
       ),
     );
 
     const result = await sendRequest(spec("GET", "https://api.test/x"));
 
-    expect(result).toMatchObject({ ok: true, sizeBytes: 100 });
+    expect(result).toMatchObject({ ok: true, sizeBytes: decoded.byteLength });
   });
 
   it("supplies the standard meaning when fetch omits status text", async () => {

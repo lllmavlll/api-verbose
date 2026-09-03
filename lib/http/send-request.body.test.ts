@@ -113,7 +113,8 @@ describe("sendRequest body integration", () => {
       status: 200,
       statusText: "OK",
       headers: [],
-      bodyText: "ok",
+      bodyBase64: "b2s=",
+      sizeBytes: 2,
     });
 
     await sendRequest(spec({ method: "PUT" }));

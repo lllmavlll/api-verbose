@@ -1,5 +1,6 @@
 import { createServer, request as nodeRequest } from "node:http";
 import type { AddressInfo } from "node:net";
+import { gzipSync } from "node:zlib";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -26,6 +27,10 @@ async function* body(...parts: string[]) {
   for (const part of parts) {
     yield new TextEncoder().encode(part);
   }
+}
+
+async function* byteBody(...parts: Uint8Array[]) {
+  yield* parts;
 }
 
 function upstream(
@@ -58,7 +63,10 @@ describe("createPinnedRequestOptions", () => {
       method: "GET",
       agent: false,
       servername: "api.example.com",
-      headers: { "user-agent": "Verbose/0.1" },
+      headers: {
+        "user-agent": "Verbose/0.1",
+        "accept-encoding": "identity",
+      },
     });
 
     const callback = vi.fn();
@@ -89,6 +97,20 @@ describe("createPinnedRequestOptions", () => {
 
     expect(options.headers).toMatchObject({
       "x-test": ["one", "two"],
+    });
+  });
+
+  it("forces identity encoding instead of forwarding compressed response preferences", () => {
+    const options = createPinnedRequestOptions({
+      url: new URL("https://api.example.com/path"),
+      method: "GET",
+      headers: [["accept-encoding", "gzip, br"]],
+      address: PUBLIC_V4,
+      signal: new AbortController().signal,
+    });
+
+    expect(options.headers).toMatchObject({
+      "accept-encoding": "identity",
     });
   });
 
@@ -331,7 +353,15 @@ describe("performRelay", () => {
         { method: "GET", url: "https://first.example/start" },
         { requestImpl, resolve },
       ),
-    ).resolves.toMatchObject({ ok: true, bodyText: "done" });
+    ).resolves.toMatchObject({
+      ok: true,
+      bodyBase64: "ZG9uZQ==",
+      sizeBytes: 4,
+      redirects: [
+        { url: "https://first.example/start", status: 307 },
+        { url: "https://next.example/final", status: 200 },
+      ],
+    });
     expect(requestImpl).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
@@ -339,6 +369,26 @@ describe("performRelay", () => {
         address: PUBLIC_V6,
       }),
     );
+  });
+
+  it("preserves binary response bytes for image preview", async () => {
+    const bytes = new Uint8Array([137, 80, 78, 71, 0, 255]);
+    const requestImpl = vi.fn(async () =>
+      upstream({
+        rawHeaders: ["Content-Type", "image/png"],
+        body: byteBody(bytes),
+      }),
+    );
+
+    const result = await performRelay(
+      { method: "GET", url: "https://example.com/image.png" },
+      { requestImpl, resolve: resolvePublic },
+    );
+
+    expect(result).toMatchObject({ ok: true, sizeBytes: bytes.byteLength });
+    if (result.ok) {
+      expect(result.bodyBase64).toBe("iVBORwD/");
+    }
   });
 
   it.each([
@@ -460,7 +510,36 @@ describe("performRelay", () => {
         ["set-cookie", "one=1"],
         ["set-cookie", "two=2"],
       ],
-      bodyText: '{"emoji":"🌱"}',
+      bodyBase64: "eyJlbW9qaSI6IvCfjLEifQ==",
+      sizeBytes: 16,
+    });
+  });
+
+  it("rejects an encoded upstream representation instead of treating wire bytes as decoded bytes", async () => {
+    const compressed = gzipSync(Buffer.from("x".repeat(1_000_001)));
+    const requestImpl = vi.fn(async () =>
+      upstream({
+        rawHeaders: [
+          "content-type",
+          "application/json",
+          "content-encoding",
+          "gzip",
+          "content-length",
+          String(compressed.byteLength),
+        ],
+        body: byteBody(new Uint8Array(compressed)),
+      }),
+    );
+
+    await expect(
+      performRelay(
+        { method: "GET", url: "https://example.com/" },
+        { requestImpl, resolve: resolvePublic },
+      ),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: "upstream-unreachable",
+      message: expect.stringMatching(/content encoding/i),
     });
   });
 

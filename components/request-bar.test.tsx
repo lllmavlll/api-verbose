@@ -28,6 +28,7 @@ it("offers every supported method and submits a non-default choice", async () =>
   render(<RequestBar pending={false} onSubmit={onSubmit} />);
 
   await user.click(screen.getByRole("combobox", { name: /http method/i }));
+  await screen.findByRole("option", { name: "GET" });
   for (const method of [
     "GET",
     "POST",
@@ -39,7 +40,7 @@ it("offers every supported method and submits a non-default choice", async () =>
   ]) {
     expect(await screen.findByRole("option", { name: method })).toBeInTheDocument();
   }
-  await user.click(screen.getByRole("option", { name: "PATCH" }));
+  await user.click(await screen.findByRole("option", { name: "PATCH" }));
   await user.type(screen.getByRole("textbox"), "https://api.test/x");
   await user.click(screen.getByRole("button", { name: /send/i }));
 

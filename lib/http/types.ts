@@ -40,6 +40,10 @@ export interface RequestSpec {
   body: Body;
 }
 
+export type ResponseBody =
+  | { encoding: "utf8"; text: string }
+  | { encoding: "base64"; data: string };
+
 export type SendSuccess = {
   ok: true;
   via: "direct" | "relay";
@@ -47,9 +51,10 @@ export type SendSuccess = {
   statusText: string;
   timeMs: number;
   sizeBytes: number;
-  bodyText: string;
+  body: ResponseBody;
   isJson: boolean;
   headers: [string, string][];
+  redirects?: { url: string; status: number }[];
 };
 
 export type SendFailure = {

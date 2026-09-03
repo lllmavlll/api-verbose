@@ -9,13 +9,20 @@ import { request as httpsRequest } from "node:https";
 import type { LookupFunction } from "node:net";
 
 import type { HttpMethod } from "./types";
+import { bytesToBase64 } from "./body-codec";
+import type {
+  RelayErrorCode,
+  RelayRequest,
+  RelayResponse,
+} from "./relay-contract";
+import { MAX_RELAY_RESPONSE_BYTES } from "./relay-contract";
 import {
   resolveTarget,
   type ResolvedAddress,
   type Resolver,
 } from "./ssrf-guard";
 
-export const MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
+export const MAX_RESPONSE_BYTES = MAX_RELAY_RESPONSE_BYTES;
 export const RELAY_TIMEOUT_MS = 30_000;
 export const MAX_REDIRECTS = 5;
 
@@ -32,33 +39,13 @@ export const HOP_BY_HOP = [
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const FIXED_HOP_BY_HOP = new Set<string>(HOP_BY_HOP);
-const NEVER_FORWARD_REQUEST = new Set(["host", "content-length"]);
+const NEVER_FORWARD_REQUEST = new Set([
+  "host",
+  "content-length",
+  "accept-encoding",
+]);
 
-export type RelayRequest = {
-  method: HttpMethod;
-  url: string;
-  headers?: [string, string][];
-  body?: string;
-};
-
-export type RelayErrorCode =
-  | "invalid-url"
-  | "method-not-allowed"
-  | "blocked-scheme"
-  | "blocked-address"
-  | "too-large"
-  | "timeout"
-  | "upstream-unreachable";
-
-export type RelayResponse =
-  | {
-      ok: true;
-      status: number;
-      statusText: string;
-      headers: [string, string][];
-      bodyText: string;
-    }
-  | { ok: false; error: RelayErrorCode; message: string };
+export type { RelayErrorCode, RelayRequest, RelayResponse } from "./relay-contract";
 
 export type PinnedResponse = {
   status: number;
@@ -161,6 +148,7 @@ function outgoingHeaders(
   if (result["user-agent"] === undefined) {
     result["user-agent"] = "Verbose/0.1";
   }
+  result["accept-encoding"] = "identity";
 
   if (body !== undefined) {
     result["content-length"] = Buffer.byteLength(body);
@@ -261,16 +249,21 @@ async function readCappedBody(
   bodyStream: AsyncIterable<Uint8Array>,
   maxBytes: number,
   controller: AbortController,
-): Promise<string | null> {
-  const decoder = new TextDecoder();
+): Promise<Uint8Array | null> {
   const iterator = bodyStream[Symbol.asyncIterator]();
   let bytes = 0;
-  let bodyText = "";
+  const chunks: Uint8Array[] = [];
 
   while (true) {
     const next = await withAbort(Promise.resolve(iterator.next()), controller.signal);
     if (next.done) {
-      return bodyText + decoder.decode();
+      const result = new Uint8Array(bytes);
+      let offset = 0;
+      for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      return result;
     }
 
     bytes += next.value.byteLength;
@@ -279,7 +272,7 @@ async function readCappedBody(
       await iterator.return?.();
       return null;
     }
-    bodyText += decoder.decode(next.value, { stream: true });
+    chunks.push(next.value);
   }
 }
 
@@ -314,6 +307,7 @@ export async function performRelay(
   let method = relayRequest.method;
   let body = relayRequest.body;
   let headers = stripHopByHop(relayRequest.headers ?? [], true);
+  const redirects: { url: string; status: number }[] = [];
 
   try {
     for (let redirectCount = 0; ; redirectCount += 1) {
@@ -340,6 +334,7 @@ export async function performRelay(
       const location = firstHeader(responseHeaders, "location");
 
       if (REDIRECT_STATUSES.has(upstream.status) && location) {
+        redirects.push({ url: target.url.href, status: upstream.status });
         await cancelBody(upstream.body);
         if (redirectCount >= MAX_REDIRECTS) {
           return relayError(
@@ -357,6 +352,16 @@ export async function performRelay(
       }
 
       const contentLength = Number(firstHeader(responseHeaders, "content-length"));
+      const contentEncoding = firstHeader(responseHeaders, "content-encoding")
+        ?.trim()
+        .toLowerCase();
+      if (contentEncoding && contentEncoding !== "identity") {
+        await cancelBody(upstream.body);
+        return relayError(
+          "upstream-unreachable",
+          "The upstream returned an unsupported content encoding.",
+        );
+      }
       if (Number.isFinite(contentLength) && contentLength > maxBytes) {
         controller.abort();
         await cancelBody(upstream.body);
@@ -366,8 +371,8 @@ export async function performRelay(
         );
       }
 
-      const bodyText = await readCappedBody(upstream.body, maxBytes, controller);
-      if (bodyText === null) {
+      const bodyBytes = await readCappedBody(upstream.body, maxBytes, controller);
+      if (bodyBytes === null) {
         return relayError(
           "too-large",
           `The upstream response exceeded the ${maxBytes}-byte relay limit.`,
@@ -379,7 +384,16 @@ export async function performRelay(
         status: upstream.status,
         statusText: upstream.statusText,
         headers: stripHopByHop(responseHeaders),
-        bodyText,
+        bodyBase64: bytesToBase64(bodyBytes),
+        sizeBytes: bodyBytes.byteLength,
+        ...(redirects.length
+          ? {
+              redirects: [
+                ...redirects,
+                { url: target.url.href, status: upstream.status },
+              ],
+            }
+          : {}),
       };
     }
   } catch {

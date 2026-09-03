@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Syntax-highlighted response body with Pretty/Raw/Preview toggle and redirect chain.
 - Typed request bodies — JSON/form/raw with automatic Content-Type.
 - Request builder: headers, query params with URL sync, and Bearer/Basic/API-key auth presets.
 - CORS relay Route Handler with automatic direct-to-relay fallback and SSRF guards (scheme allowlist, private/loopback/link-local, CGNAT and metadata address blocking, pinned DNS results, redirect revalidation, size/time caps, and hop-by-hop stripping).

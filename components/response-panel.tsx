@@ -1,30 +1,20 @@
 import { AlertCircle, ArrowRight, LoaderCircle } from "lucide-react";
 
+import { ResponseBody } from "@/components/response-body";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { formatBody } from "@/lib/http/format-body";
 import type { SendResult } from "@/lib/http/types";
+import { contentTypeOf, formatSize } from "@/lib/render/meta";
 
 type ResponsePanelProps = {
   result: SendResult | null;
   pending: boolean;
 };
-
-function formatSize(sizeBytes: number): string {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 export function ResponsePanel({ result, pending }: ResponsePanelProps) {
   if (pending) {
@@ -64,7 +54,7 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
       <Card className="min-h-80 border border-destructive/30 bg-destructive/5 shadow-none ring-0">
         <CardContent>
           <Alert aria-live="polite" className="border-destructive/30" variant="destructive">
-          <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0" />
+            <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0" />
             <AlertTitle>Unable to send request</AlertTitle>
             <AlertDescription>{result.message}</AlertDescription>
           </Alert>
@@ -74,7 +64,10 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
   }
 
   const status = [result.status, result.statusText].filter(Boolean).join(" ");
-  const formattedBody = formatBody(result.bodyText, result.isJson);
+  const contentType = contentTypeOf(result.headers);
+  const contentEncoding = result.headers.find(
+    ([name]) => name.toLowerCase() === "content-encoding",
+  )?.[1];
 
   return (
     <Card
@@ -82,17 +75,19 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
       className="min-h-80 gap-0 border py-0 shadow-none ring-0"
     >
       <CardHeader className="flex flex-row flex-wrap items-center gap-2 rounded-none border-b py-3 font-mono text-sm">
-        <span
-          className={
-            result.status < 400 ? "text-status-success" : "text-destructive"
-          }
+        <Badge
+          className={result.status < 400 ? "text-status-success" : undefined}
+          variant={result.status < 400 ? "outline" : "destructive"}
         >
           {status}
-        </span>
+        </Badge>
         {result.via === "relay" ? (
-          <span className="rounded-full border bg-muted px-2 py-0.5 text-[11px] tracking-wide text-muted-foreground">
+          <Badge
+            className="bg-muted text-[11px] tracking-wide text-muted-foreground"
+            variant="outline"
+          >
             via relay
-          </span>
+          </Badge>
         ) : null}
         <span aria-hidden className="text-muted-foreground">
           ·
@@ -102,11 +97,52 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
           ·
         </span>
         <span>{formatSize(result.sizeBytes)}</span>
+        <span aria-hidden className="text-muted-foreground">
+          ·
+        </span>
+        <span className="text-muted-foreground">
+          {contentType ?? "content type unavailable"}
+        </span>
+        {contentEncoding ? (
+          <>
+            <span aria-hidden className="text-muted-foreground">
+              ·
+            </span>
+            <span className="text-muted-foreground">{contentEncoding}</span>
+          </>
+        ) : null}
       </CardHeader>
-      <CardContent>
-        <pre className="max-h-[60vh] overflow-auto font-mono text-sm leading-6 whitespace-pre-wrap break-words">
-          <code>{formattedBody}</code>
-        </pre>
+      {result.redirects?.length ? (
+        <section
+          aria-label="Redirect chain"
+          className="border-b bg-muted/35 px-4 py-3"
+        >
+          <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            Redirect chain
+          </p>
+          <ol className="space-y-1.5 font-mono text-xs">
+            {result.redirects.map((hop, index) => (
+              <li className="flex min-w-0 items-center gap-2" key={`${hop.url}-${index}`}>
+                {hop.status === 0 ? (
+                  <span className="shrink-0 text-muted-foreground">
+                    Redirected from
+                  </span>
+                ) : (
+                  <Badge className="font-mono" variant="outline">
+                    {hop.status}
+                  </Badge>
+                )}
+                <ArrowRight aria-hidden className="size-3 shrink-0 text-muted-foreground" />
+                <span className="truncate" title={hop.url}>
+                  {hop.url}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+      <CardContent className="px-0">
+        <ResponseBody result={result} />
       </CardContent>
     </Card>
   );

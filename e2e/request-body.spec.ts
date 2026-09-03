@@ -108,7 +108,8 @@ test("an idempotent body crosses the real relay-client boundary unchanged", asyn
         status: 200,
         statusText: "OK",
         headers: [],
-        bodyText: "accepted",
+        bodyBase64: "YWNjZXB0ZWQ=",
+        sizeBytes: 8,
       }),
     });
   });

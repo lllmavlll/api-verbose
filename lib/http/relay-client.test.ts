@@ -15,14 +15,27 @@ describe("relayFetch", () => {
         status: 200,
         statusText: "OK",
         headers: [["content-type", "application/json"]],
-        bodyText: '{"ok":true}',
+        bodyBase64: "eyJvayI6dHJ1ZX0=",
+        sizeBytes: 11,
+        redirects: [
+          { url: "https://api.example/start", status: 302 },
+          { url: "https://api.example/path", status: 200 },
+        ],
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       relayFetch({ method: "GET", url: "https://api.example/path" }),
-    ).resolves.toMatchObject({ ok: true, status: 200 });
+    ).resolves.toMatchObject({
+      ok: true,
+      status: 200,
+      sizeBytes: 11,
+      redirects: [
+        { url: "https://api.example/start", status: 302 },
+        { url: "https://api.example/path", status: 200 },
+      ],
+    });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/relay",
       expect.objectContaining({
@@ -53,6 +66,26 @@ describe("relayFetch", () => {
     ).resolves.toMatchObject({ ok: false, error: "blocked-address" });
   });
 
+  it("rejects inherited Object prototype names as relay error codes", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          ok: false,
+          error: "toString",
+          message: "not a relay error",
+        }),
+      ),
+    );
+
+    await expect(
+      relayFetch({ method: "GET", url: "https://api.example/path" }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: "upstream-unreachable",
+    });
+  });
+
   it("maps a transport failure to upstream-unreachable", async () => {
     vi.stubGlobal(
       "fetch",
@@ -78,6 +111,32 @@ describe("relayFetch", () => {
 
     await expect(
       relayFetch({ method: "GET", url: "https://api.example/path" }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: "upstream-unreachable",
+    });
+  });
+
+  it.each([
+    ["invalid alphabet", { bodyBase64: "!!!!", sizeBytes: 3 }],
+    ["non-canonical padding bits", { bodyBase64: "YR==", sizeBytes: 1 }],
+    ["decoded size mismatch", { bodyBase64: "YQ==", sizeBytes: 2 }],
+  ])("rejects %s in relay response bodies", async (_case, bodyFields) => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          headers: [["content-type", "application/octet-stream"]],
+          ...bodyFields,
+        }),
+      ),
+    );
+
+    await expect(
+      relayFetch({ method: "GET", url: "https://api.example/file" }),
     ).resolves.toMatchObject({
       ok: false,
       error: "upstream-unreachable",

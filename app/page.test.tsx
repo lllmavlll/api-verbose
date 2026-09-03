@@ -13,7 +13,7 @@ const { sendRequest } = vi.hoisted(() => ({
       statusText: "OK",
       timeMs: 1,
       sizeBytes: 2,
-      bodyText: "{}",
+      body: { encoding: "utf8" as const, text: "{}" },
       isJson: true,
       headers: [] as [string, string][],
     };

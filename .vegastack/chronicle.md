@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Responses now read like typeset documents ([#6](https://github.com/dev-mahesh-peerxp/api-verbose/issues/6))
+
+- **What:** Successful responses now open in a richer panel with theme-aware syntax highlighting, exact Raw text, safe HTML and image previews, content metadata, and redirect context. Large responses skip highlighting so the reading surface stays responsive.
+- **Why:** Verbose is built around making API responses easier to read than a plain text dump, and the walking skeleton only had basic JSON formatting.
+- **How it went:** The implementation stayed inside the existing response seam; Base UI's semantic disabled tabs needed a test adjustment, and a tiny ephemeral HTTP server made the redirect browser test deterministic without fabricating hop data.
+- **Changed:** Shiki highlighting for JSON, HTML, and XML · Pretty/Raw/Preview tabs · script-free and network-blocked HTML sandbox · image blob previews · 1 MB highlighting cap · content type and encoding metadata · visible redirect chain · deterministic browser evidence
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/6-response-rendering
+
 ## 03-09-2026 — Requests can now carry the body a developer intends ([#5](https://github.com/dev-mahesh-peerxp/api-verbose/issues/5))
 
 - **What:** Verbose now keeps separate in-session drafts for JSON, URL-encoded form, and raw request bodies. It sends the selected non-empty body only on body-capable methods, supplies the matching Content-Type unless an explicit header wins, and keeps malformed JSON sendable with a quiet warning.

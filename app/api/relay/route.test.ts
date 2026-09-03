@@ -99,7 +99,12 @@ describe("POST /api/relay", () => {
         ["set-cookie", "upstream=secret"],
         ["x-safe", "yes"],
       ],
-      bodyText: "created",
+      bodyBase64: "Y3JlYXRlZA==",
+      sizeBytes: 7,
+      redirects: [
+        { url: "https://example.com/start", status: 307 },
+        { url: "https://example.com/final", status: 201 },
+      ],
     });
 
     const response = await POST(
@@ -114,6 +119,11 @@ describe("POST /api/relay", () => {
       headers: [
         ["set-cookie", "upstream=secret"],
         ["x-safe", "yes"],
+      ],
+      sizeBytes: 7,
+      redirects: [
+        { url: "https://example.com/start", status: 307 },
+        { url: "https://example.com/final", status: 201 },
       ],
     });
   });

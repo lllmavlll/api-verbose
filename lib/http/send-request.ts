@@ -1,4 +1,6 @@
 import type { RequestSpec, SendResult } from "./types";
+import { base64ToBytes, decodeResponseBody } from "./body-codec";
+import { isJsonMediaType } from "./media-type";
 import { buildBody } from "./body";
 import { relayFetch } from "./relay-client";
 import { isAbsoluteHttpUrl } from "./url";
@@ -79,7 +81,7 @@ const STATUS_MEANINGS: Readonly<Record<number, string>> = {
 };
 
 function bodyLooksLikeJson(bodyText: string, contentType: string): boolean {
-  if (contentType.toLowerCase().includes("json")) {
+  if (isJsonMediaType(contentType)) {
     return true;
   }
 
@@ -89,17 +91,6 @@ function bodyLooksLikeJson(bodyText: string, contentType: string): boolean {
   } catch {
     return false;
   }
-}
-
-function responseSize(bodyText: string, contentLength: string | null): number {
-  if (contentLength !== null) {
-    const parsedLength = Number(contentLength);
-    if (Number.isFinite(parsedLength) && parsedLength >= 0) {
-      return parsedLength;
-    }
-  }
-
-  return new TextEncoder().encode(bodyText).length;
 }
 
 export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
@@ -171,9 +162,11 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
     const contentType =
       relayed.headers.find(([name]) => name.toLowerCase() === "content-type")?.[1] ??
       "";
-    const contentLength =
-      relayed.headers.find(([name]) => name.toLowerCase() === "content-length")?.[1] ??
-      null;
+    const body = decodeResponseBody(
+      base64ToBytes(relayed.bodyBase64),
+      contentType,
+    );
+    const bodyText = body.encoding === "utf8" ? body.text : "";
 
     return {
       ok: true,
@@ -182,17 +175,18 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
       statusText:
         relayed.statusText || STATUS_MEANINGS[relayed.status] || "Unknown Status",
       timeMs: performance.now() - startedAt,
-      sizeBytes: responseSize(relayed.bodyText, contentLength),
-      bodyText: relayed.bodyText,
-      isJson: bodyLooksLikeJson(relayed.bodyText, contentType),
+      sizeBytes: relayed.sizeBytes,
+      body,
+      isJson: body.encoding === "utf8" && bodyLooksLikeJson(bodyText, contentType),
       headers: relayed.headers,
+      redirects: relayed.redirects,
     };
   }
 
   const timeMs = performance.now() - startedAt;
-  let bodyText: string;
+  let bodyBytes: Uint8Array;
   try {
-    bodyText = await response.text();
+    bodyBytes = new Uint8Array(await response.arrayBuffer());
   } catch {
     return {
       ok: false,
@@ -201,6 +195,10 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
     };
   }
 
+  const contentType = response.headers.get("content-type") ?? "";
+  const body = decodeResponseBody(bodyBytes, contentType);
+  const bodyText = body.encoding === "utf8" ? body.text : "";
+
   return {
     ok: true,
     via: "direct",
@@ -208,12 +206,15 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
     statusText:
       response.statusText || STATUS_MEANINGS[response.status] || "Unknown Status",
     timeMs,
-    sizeBytes: responseSize(bodyText, response.headers.get("content-length")),
-    bodyText,
-    isJson: bodyLooksLikeJson(
-      bodyText,
-      response.headers.get("content-type") ?? "",
-    ),
+    sizeBytes: bodyBytes.byteLength,
+    body,
+    isJson: body.encoding === "utf8" && bodyLooksLikeJson(bodyText, contentType),
     headers: Array.from(response.headers.entries()),
+    redirects: response.redirected
+      ? [
+          { url: spec.url, status: 0 },
+          { url: response.url, status: response.status },
+        ]
+      : undefined,
   };
 }

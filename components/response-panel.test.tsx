@@ -1,9 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { ResponsePanel } from "./response-panel";
 
-it("renders a status line and pretty JSON on success", () => {
+it("renders a status line and pretty JSON on success", async () => {
   render(
     <ResponsePanel
       pending={false}
@@ -14,7 +14,7 @@ it("renders a status line and pretty JSON on success", () => {
         statusText: "OK",
         timeMs: 128,
         sizeBytes: 1400,
-        bodyText: '{"a":1}',
+        body: { encoding: "utf8", text: '{"a":1}' },
         isJson: true,
         headers: [],
       }}
@@ -26,7 +26,9 @@ it("renders a status line and pretty JSON on success", () => {
   expect(screen.getByText(/200 OK/)).not.toHaveClass("text-method-get");
   expect(screen.getByText(/128 ms/)).toBeInTheDocument();
   expect(screen.getByText(/1.4 KB/)).toBeInTheDocument();
-  expect(screen.getByText(/"a": 1/)).toBeInTheDocument();
+  await waitFor(() =>
+    expect(document.querySelector("pre.shiki")).toHaveTextContent(/"a": 1/),
+  );
 });
 
 it("renders the failure message", () => {
@@ -57,7 +59,7 @@ const success = {
   statusText: "OK",
   timeMs: 12,
   sizeBytes: 7,
-  bodyText: '{"a":1}',
+  body: { encoding: "utf8" as const, text: '{"a":1}' },
   isJson: true,
   headers: [] as [string, string][],
 };

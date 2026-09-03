@@ -1,8 +1,17 @@
 # Verbose
 
-Verbose is a local-first REST client for the browser. Pick an HTTP method, enter an absolute HTTP or HTTPS URL, and send the request to see its status, elapsed time, response size, and body. JSON responses are formatted for readability; other responses are shown as raw text.
+Verbose is a local-first REST client for the browser. Pick an HTTP method, enter an absolute HTTP or HTTPS URL, and send the request to see its status, elapsed time, response size, content type, and body.
 
 Verbose sends directly from the browser first. If an idempotent request is blocked in the CORS/network path, it falls back through the in-app relay and labels the result `via relay`. Ambiguous `POST` and `PATCH` failures are never retried automatically, avoiding duplicate writes.
+
+## Response views
+
+- **Pretty** formats JSON and applies theme-aware Shiki highlighting to JSON, HTML, and XML responses.
+- **Raw** preserves the exact received text, while responses at or above 1 MB automatically skip highlighting.
+- **Preview** renders HTML inside a script-free, network-blocked sandbox and shows image responses from a local blob URL.
+- Redirected requests show the known path from the original URL to the final response.
+
+Screenshots: [Pretty (dark)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-dark.png) · [Pretty (light)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-light.png) · [Raw](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-raw.png) · [sandboxed HTML Preview](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-preview-html.png) · [redirect chain](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-redirect-chain.png)
 
 ## Run locally
 

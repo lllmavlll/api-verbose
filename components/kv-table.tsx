@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -74,9 +75,12 @@ export function KvTable({
     >
       <div className="flex items-center gap-2 border-b px-3 py-2.5">
         <h2 className="text-sm font-medium">{label}</h2>
-        <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+        <Badge
+          className="border-transparent bg-muted font-mono text-[11px] text-muted-foreground"
+          variant="outline"
+        >
           {count}
-        </span>
+        </Badge>
       </div>
       <Table>
         <TableHeader>

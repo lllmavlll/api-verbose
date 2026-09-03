@@ -1,38 +1,23 @@
 import {
   performRelay,
+} from "@/lib/http/relay-core";
+import {
+  isHeaderPairs,
+  RELAY_ERROR_STATUS,
+  RELAY_METHODS,
   type RelayErrorCode,
   type RelayRequest,
   type RelayResponse,
-} from "@/lib/http/relay-core";
+} from "@/lib/http/relay-contract";
 import type { HttpMethod } from "@/lib/http/types";
 
 export const runtime = "nodejs";
 export const MAX_RELAY_REQUEST_BYTES = 10 * 1024 * 1024;
 
-const METHODS = new Set<HttpMethod>([
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-  "HEAD",
-  "OPTIONS",
-]);
-
-const ERROR_STATUS: Record<RelayErrorCode, number> = {
-  "invalid-url": 400,
-  "method-not-allowed": 400,
-  "blocked-scheme": 403,
-  "blocked-address": 403,
-  "too-large": 413,
-  "upstream-unreachable": 502,
-  timeout: 504,
-};
-
 function errorResponse(
   error: RelayErrorCode,
   message: string,
-  status = ERROR_STATUS[error],
+  status = RELAY_ERROR_STATUS[error],
 ): Response {
   return Response.json({ ok: false, error, message }, { status });
 }
@@ -69,18 +54,6 @@ async function readRequestBody(request: Request): Promise<string | null> {
   }
 }
 
-function isHeaderPairs(value: unknown): value is [string, string][] {
-  return (
-    Array.isArray(value) &&
-    value.every(
-      (entry) =>
-        Array.isArray(entry) &&
-        entry.length === 2 &&
-        entry.every((part) => typeof part === "string"),
-    )
-  );
-}
-
 function validateRequest(
   value: unknown,
 ): RelayRequest | Extract<RelayResponse, { ok: false }> {
@@ -93,7 +66,10 @@ function validateRequest(
   }
 
   const candidate = value as Record<string, unknown>;
-  if (typeof candidate.method !== "string" || !METHODS.has(candidate.method as HttpMethod)) {
+  if (
+    typeof candidate.method !== "string" ||
+    !RELAY_METHODS.has(candidate.method as HttpMethod)
+  ) {
     return {
       ok: false,
       error: "method-not-allowed",
@@ -175,6 +151,6 @@ export async function POST(request: Request): Promise<Response> {
 
   const result = await performRelay(validated);
   return Response.json(result, {
-    status: result.ok ? 200 : ERROR_STATUS[result.error],
+    status: result.ok ? 200 : RELAY_ERROR_STATUS[result.error],
   });
 }
