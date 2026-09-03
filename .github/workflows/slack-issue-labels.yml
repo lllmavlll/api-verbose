@@ -1,0 +1,31 @@
+name: Notify Slack about issue labels
+
+on:
+  issues:
+    types:
+      - labeled
+      - unlabeled
+
+jobs:
+  notify-slack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send notification to Slack
+        uses: slackapi/slack-github-action@v2.1.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "GitHub issue label changed",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Issue label changed*\n<${{ github.event.issue.html_url }}|#${{ github.event.issue.number }} — ${{ github.event.issue.title }}>\nAction: `${{ github.event.action }}`\nLabel: `${{ github.event.label.name }}`"
+                  }
+                }
+              ]
+            }
