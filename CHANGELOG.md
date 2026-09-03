@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- Import curl commands and copy the current request as curl / fetch / Python.
 - Command palette (⌘K) and global keyboard shortcuts for sending (⌘↵), focusing the URL (⌘\), switching methods, and opening shortcut help (?).
 - Syntax-highlighted response body with Pretty/Raw/Preview toggle and redirect chain.
 - Typed request bodies — JSON/form/raw with automatic Content-Type.

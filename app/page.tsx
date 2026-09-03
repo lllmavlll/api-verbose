@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { CopyAsCodeMenu } from "@/components/copy-as-code-menu";
+import { ImportCurlDialog } from "@/components/import-curl-dialog";
 import { KeyboardProvider } from "@/components/keyboard-provider";
 import { RequestBar } from "@/components/request-bar";
 import { RequestBody } from "@/components/request-body";
@@ -109,6 +111,14 @@ export default function Home() {
               disabled={!hydrated}
             >
               <RequestBar pending={pending} onSubmit={handleSubmit} />
+              <div
+                aria-label="Request import and export"
+                className="mt-3 flex flex-col items-start gap-2 sm:flex-row"
+                role="group"
+              >
+                <ImportCurlDialog />
+                <CopyAsCodeMenu />
+              </div>
               <div className="mt-4 border-t pt-4">
                 <RequestBody />
               </div>

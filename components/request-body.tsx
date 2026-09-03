@@ -55,15 +55,23 @@ function initialDrafts(body: Body) {
 
 export function RequestBody() {
   const initial = useState(() => initialDrafts(useRequestStore.getState().spec.body))[0];
-  const [kind, setKind] = useState<BodyKind>(initial.kind);
   const [jsonText, setJsonText] = useState(initial.jsonText);
   const [rawText, setRawText] = useState(initial.rawText);
   const [rawContentType, setRawContentType] = useState(initial.rawContentType);
   const [formFields, setFormFields] = useState<KV[]>(initial.formFields);
   const method = useRequestStore((state) => state.spec.method);
+  const storeBody = useRequestStore((state) => state.spec.body);
   const setBody = useRequestStore((state) => state.setBody);
+  const kind = storeBody.kind;
+  const displayedJsonText = kind === "json" ? storeBody.text : jsonText;
+  const displayedRawText = kind === "raw" ? storeBody.text : rawText;
+  const displayedRawContentType =
+    kind === "raw" ? storeBody.contentType : rawContentType;
+  const displayedFormFields = kind === "form" ? storeBody.fields : formFields;
 
   function bodyFor(nextKind: BodyKind): Body {
+    if (storeBody.kind === nextKind) return storeBody;
+
     switch (nextKind) {
       case "none":
         return { kind: "none" };
@@ -80,8 +88,17 @@ export function RequestBody() {
     }
   }
 
+  function rememberBody(body: Body) {
+    if (body.kind === "json") setJsonText(body.text);
+    if (body.kind === "raw") {
+      setRawText(body.text);
+      setRawContentType(body.contentType);
+    }
+    if (body.kind === "form") setFormFields(body.fields);
+  }
+
   function selectKind(nextKind: BodyKind) {
-    setKind(nextKind);
+    rememberBody(storeBody);
     setBody(bodyFor(nextKind));
   }
 
@@ -92,12 +109,12 @@ export function RequestBody() {
 
   function changeRawText(text: string) {
     setRawText(text);
-    setBody({ kind: "raw", text, contentType: rawContentType });
+    setBody({ kind: "raw", text, contentType: displayedRawContentType });
   }
 
   function changeRawContentType(contentType: string) {
     setRawContentType(contentType);
-    setBody({ kind: "raw", text: rawText, contentType });
+    setBody({ kind: "raw", text: displayedRawText, contentType });
   }
 
   function changeFormFields(fields: KV[]) {
@@ -135,9 +152,9 @@ export function RequestBody() {
             ariaLabel="JSON body"
             language="json"
             onChange={changeJsonText}
-            value={jsonText}
+            value={displayedJsonText}
           />
-          {jsonText.trim() !== "" && !isValidJson(jsonText) ? (
+          {displayedJsonText.trim() !== "" && !isValidJson(displayedJsonText) ? (
             <p className="text-xs text-destructive" role="status">
               Invalid JSON — it will still be sent as typed.
             </p>
@@ -155,14 +172,14 @@ export function RequestBody() {
               onChange={(event) => changeRawContentType(event.target.value)}
               placeholder="text/plain"
               spellCheck={false}
-              value={rawContentType}
+              value={displayedRawContentType}
             />
           </div>
           <CodeEditor
             ariaLabel="Raw body"
             language="text"
             onChange={changeRawText}
-            value={rawText}
+            value={displayedRawText}
           />
         </div>
       ) : null}
@@ -178,7 +195,9 @@ export function RequestBody() {
               URL-encoded key/value fields
             </p>
             <Button
-              onClick={() => changeFormFields([...formFields, freshField()])}
+              onClick={() =>
+                changeFormFields([...displayedFormFields, freshField()])
+              }
               size="sm"
               type="button"
               variant="outline"
@@ -191,7 +210,7 @@ export function RequestBody() {
             emptyMessage="Add a field to build a URL-encoded body."
             label="Form body"
             onChange={changeFormFields}
-            rows={formFields}
+            rows={displayedFormFields}
           />
         </div>
       ) : null}

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { useRequestStore } from "@/lib/store/request-store";
@@ -140,5 +140,48 @@ describe("RequestBody", () => {
     await user.click(screen.getByRole("tab", { name: "JSON" }));
 
     expect(screen.getByText(/body not sent for GET/i)).toBeInTheDocument();
+  });
+
+  it("repopulates the editor when a complete request is loaded externally", () => {
+    render(<RequestBody />);
+
+    act(() => {
+      useRequestStore.getState().loadSpec({
+        method: "POST",
+        url: "https://api.test/x",
+        headers: [],
+        params: [],
+        auth: { kind: "none" },
+        body: { kind: "json", text: '{"imported":true}' },
+      });
+    });
+
+    expect(screen.getByLabelText("JSON body")).toHaveValue(
+      '{"imported":true}',
+    );
+  });
+
+  it("shows externally loaded form rows through the shared editor table", () => {
+    render(<RequestBody />);
+
+    act(() => {
+      useRequestStore.getState().loadSpec({
+        method: "POST",
+        url: "https://api.test/x",
+        headers: [],
+        params: [],
+        auth: { kind: "none" },
+        body: {
+          kind: "form",
+          fields: [
+            { id: "imported", key: "name", value: "Ada", enabled: true },
+          ],
+        },
+      });
+    });
+
+    const form = screen.getByRole("region", { name: "Form body" });
+    expect(within(form).getByPlaceholderText("Key")).toHaveValue("name");
+    expect(within(form).getByPlaceholderText("Value")).toHaveValue("Ada");
   });
 });

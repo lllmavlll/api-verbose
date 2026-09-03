@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { clearCommands } from "@/lib/commands";
@@ -31,6 +31,49 @@ beforeEach(() => {
   clearCommands();
   useRequestStore.getState().reset();
   sendRequest.mockClear();
+});
+
+it("keeps curl controls available alongside the command palette", async () => {
+  const user = userEvent.setup();
+  render(<Page />);
+
+  expect(
+    screen.getByRole("button", { name: /import curl/i }),
+  ).toBeInTheDocument();
+
+  await user.keyboard("{Meta>}k{/Meta}");
+
+  expect(
+    screen.getByRole("dialog", { name: /command palette/i }),
+  ).toBeInTheDocument();
+});
+
+it("does not send the underlying request from the curl import dialog", async () => {
+  const user = userEvent.setup();
+  const originalSpec: RequestSpec = {
+    method: "POST",
+    url: "https://api.test/mutate",
+    params: [],
+    headers: [],
+    auth: { kind: "basic", username: "alice", password: "secret" },
+    body: {
+      kind: "raw",
+      text: "mutate=true",
+      contentType: "application/x-www-form-urlencoded",
+    },
+  };
+  useRequestStore.getState().loadSpec(originalSpec);
+  render(<Page />);
+
+  await user.click(screen.getByRole("button", { name: /import curl/i }));
+  const input = screen.getByRole("textbox", { name: /curl command/i });
+  fireEvent.keyDown(input, { key: "Enter", metaKey: true });
+
+  expect(sendRequest).not.toHaveBeenCalled();
+  expect(useRequestStore.getState().spec).toEqual(originalSpec);
+  expect(
+    screen.getByRole("dialog", { name: /import curl/i }),
+  ).toBeInTheDocument();
 });
 
 it("uses palette method selection without discarding builder state or sending", async () => {

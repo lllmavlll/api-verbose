@@ -46,6 +46,12 @@ The **Auth** panel can add a Bearer token, Basic credentials, or an API key sent
 
 Use **Body** to keep separate in-session drafts for JSON, URL-encoded form fields, and raw text. JSON and raw bodies use the CodeMirror editor; malformed JSON is allowed and sent exactly as typed. Verbose supplies the matching `Content-Type` automatically unless an enabled header row already sets one. Bodies are sent only for `POST`, `PUT`, `PATCH`, and `DELETE`; other methods keep the draft visible and show that it will not be sent.
 
+## Import & copy-as-code
+
+Use **Import curl** to paste a curl command and replace the live request with its method, URL and query parameters, headers, text body, and Basic credentials. Supported flags populate the existing request builder; unsupported flags are listed in a visible ignored-flags note instead of being silently dropped. Imports remain in memory and are not persisted by this feature.
+
+Use **Copy as** to copy the effective request Verbose can send as a runnable curl command, JavaScript `fetch` call, or Python `requests` snippet. The generators preserve its method, URL, enabled headers, sendable body bytes (including JSON whitespace), and Basic auth while escaping each target language safely. Copying that curl command back into Verbose reproduces the same wire request; internal editor distinctions that curl cannot express, such as implicit versus explicit Content-Type or form fields versus equivalent URL-encoded text, may normalize on import.
+
 ## Verify
 
 ```sh

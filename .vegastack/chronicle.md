@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Requests can move cleanly between Verbose and code ([#10](https://github.com/dev-mahesh-peerxp/api-verbose/issues/10))
+
+- **What:** Verbose can now import a supported curl command into the live request builder and report every unsupported flag it encounters. Developers can also copy the effective request as curl, JavaScript fetch, or Python requests code with target-correct escaping and a visible clipboard result.
+- **Why:** Developers needed a plain-text bridge between an everyday terminal request and the request they inspect or refine in Verbose.
+- **How it went:** The pure tokenizer, parser, and generators fit the shared request seam, but independent review caught that exact editor-model equality conflicts with runnable curl/fetch output for implicit body metadata and unsendable GET drafts. The operator approved effective-wire semantics, and the correction pass added target compilers, real keyboard coverage, proxy-flag arity, and failure-path regressions.
+- **Changed:** curl quoting and supported-flag parsing · wire-equivalent whole-request import with inline errors and ignored-flag note · curl/fetch/Python generation selected by effective Content-Type · clipboard success and fallback messages · keyboard-ready shadcn dialog and menu · independent shell/JavaScript/Python syntax checks · import/export documentation
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/10-curl-import-copy-as-code
+
 ## 03-09-2026 — Every core request action is now at your fingertips ([#13](https://github.com/dev-mahesh-peerxp/api-verbose/issues/13))
 
 - **What:** Verbose now has a searchable command palette and a shared keyboard-shortcut layer. A developer can choose a method, focus the URL, and send a request without reaching for the mouse, while a help dialog always reflects the commands currently available.
