@@ -19,6 +19,12 @@ The relay is a Node-runtime Next.js Route Handler in this same app. It needs no 
 
 The relay fetches user-supplied URLs server-side, so its security perimeter is load-bearing. It rejects non-HTTP schemes and private, loopback, link-local, CGNAT, and cloud-metadata addresses; revalidates redirects; strips hop-by-hop headers; and enforces request timeout and response-size caps. Do not expose a deployment publicly until the shipping review has confirmed those guards on the chosen Node host.
 
+Use **Query Params** to add repeated or encoded query values; enabled rows stay in live two-way sync with the URL bar. Use **Headers** for custom request headers. Both tables always keep a blank trailing row ready for keyboard entry, and disabled rows are kept in the editor without being sent.
+
+Duplicate header rows remain separate in the request model. On the direct browser path, Fetch may serialize same-name rows as one comma-joined header; transports that support physical repeated header fields can preserve them on the wire.
+
+The **Auth** panel can add a Bearer token, Basic credentials, or an API key sent as either a header or query parameter. Auth values remain in memory only and are not persisted. When an auth preset collides with a manual row, the preset wins and the overridden row is marked in the table.
+
 ## Verify
 
 ```sh

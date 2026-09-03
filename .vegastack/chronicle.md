@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — A full request can be shaped before it is sent ([#4](https://github.com/dev-mahesh-peerxp/api-verbose/issues/4))
+
+- **What:** Verbose now has editable query-parameter and header tables plus None, Bearer, Basic, and API-key auth presets. Query rows stay synchronized with the URL, auth collisions remain visible, and the fully composed request reaches the existing send path without storing credentials.
+- **Why:** The walking skeleton could send only a method and URL; developers needed to construct the rest of a practical REST request while preserving the stable seam needed by later slices.
+- **How it went:** The store and pure composition seams kept two-way URL sync predictable; review confirmed that browser Fetch may combine duplicate same-name headers on the wire, so the transport limit was made explicit while keeping the rows distinct in the request model. A delayed-hydration browser repro also caught early edits arriving before React handlers, so the builder now waits for hydration before accepting input.
+- **Changed:** keyboard-friendly trailing rows · live URL and query-param sync · repeated headers and params · auth presets and collision notices · store-backed request composition · deterministic browser coverage · builder usage documentation
+- **Decisions:** preserve duplicate header rows in `RequestSpec`; require physical repeated fields only on transports that support them
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/4-request-builder
+
 ## 03-09-2026 — CORS-blocked APIs now answer safely through the app ([#3](https://github.com/dev-mahesh-peerxp/api-verbose/issues/3))
 
 - **What:** Verbose now retries failed idempotent browser requests through its in-app relay and marks those responses `via relay`. The relay rejects unsafe destinations, pins the actual Node connection to a validated public DNS address, rechecks redirects, and bounds time and response size without storing request data.

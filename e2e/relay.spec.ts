@@ -48,3 +48,48 @@ test("a metadata target is blocked with a named relay error", async ({ page }) =
     });
   }
 });
+
+test("builder headers and auth reach relay fallback as ordered tuples", async ({
+  page,
+}) => {
+  let relayPayload: unknown;
+  await page.route("https://api.test/**", (route) => route.abort("failed"));
+  await page.route("**/api/relay", async (route) => {
+    relayPayload = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: [],
+        bodyText: "relayed",
+      }),
+    });
+  });
+  await page.goto("/");
+
+  await page.getByLabel("Request URL").fill("https://api.test/echo");
+  const headers = page.getByRole("region", { name: "Headers" });
+  await headers.getByPlaceholder("Key").first().fill("X-Test");
+  await headers.getByPlaceholder("Value").first().fill("one");
+  await headers.getByPlaceholder("Key").nth(1).fill("X-Test");
+  await headers.getByPlaceholder("Value").nth(1).fill("two");
+  await page.getByRole("combobox", { name: "Auth preset" }).click();
+  await page.getByRole("option", { name: "Bearer token" }).click();
+  await page.getByLabel("Token").fill("secret-token");
+
+  await page.getByRole("button", { name: /^send$/i }).click();
+
+  await expect(page.getByText(/via relay/i)).toBeVisible();
+  await expect.poll(() => relayPayload).toEqual({
+    method: "GET",
+    url: "https://api.test/echo",
+    headers: [
+      ["X-Test", "one"],
+      ["X-Test", "two"],
+      ["Authorization", "Bearer secret-token"],
+    ],
+  });
+});

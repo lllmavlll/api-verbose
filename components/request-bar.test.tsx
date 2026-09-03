@@ -1,8 +1,11 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 
+import { useRequestStore } from "@/lib/store/request-store";
 import { RequestBar } from "./request-bar";
+
+beforeEach(() => useRequestStore.getState().reset());
 
 it("submits the default method and URL on Send", async () => {
   const onSubmit = vi.fn();
@@ -12,10 +15,11 @@ it("submits the default method and URL on Send", async () => {
   await user.type(screen.getByRole("textbox"), "https://api.test/x");
   await user.click(screen.getByRole("button", { name: /send/i }));
 
-  expect(onSubmit).toHaveBeenCalledWith({
+  expect(useRequestStore.getState().spec).toMatchObject({
     method: "GET",
     url: "https://api.test/x",
   });
+  expect(onSubmit).toHaveBeenCalledOnce();
 });
 
 it("offers every supported method and submits a non-default choice", async () => {
@@ -23,7 +27,7 @@ it("offers every supported method and submits a non-default choice", async () =>
   const user = userEvent.setup();
   render(<RequestBar pending={false} onSubmit={onSubmit} />);
 
-  fireEvent.click(screen.getByRole("combobox", { name: /http method/i }));
+  await user.click(screen.getByRole("combobox", { name: /http method/i }));
   for (const method of [
     "GET",
     "POST",
@@ -33,16 +37,17 @@ it("offers every supported method and submits a non-default choice", async () =>
     "HEAD",
     "OPTIONS",
   ]) {
-    expect(screen.getByRole("option", { name: method })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: method })).toBeInTheDocument();
   }
   await user.click(screen.getByRole("option", { name: "PATCH" }));
   await user.type(screen.getByRole("textbox"), "https://api.test/x");
   await user.click(screen.getByRole("button", { name: /send/i }));
 
-  expect(onSubmit).toHaveBeenCalledWith({
+  expect(useRequestStore.getState().spec).toMatchObject({
     method: "PATCH",
     url: "https://api.test/x",
   });
+  expect(onSubmit).toHaveBeenCalledOnce();
 });
 
 it("blocks an invalid URL and shows a message", async () => {
@@ -55,6 +60,27 @@ it("blocks an invalid URL and shows a message", async () => {
 
   expect(onSubmit).not.toHaveBeenCalled();
   expect(screen.getByText(/valid.*url/i)).toBeInTheDocument();
+});
+
+it("reconciles a valid URL query into the param rows", async () => {
+  const user = userEvent.setup();
+  render(<RequestBar pending={false} onSubmit={vi.fn()} />);
+
+  await user.type(
+    screen.getByRole("textbox", { name: "Request URL" }),
+    "https://api.test/x?a=1&a=2",
+  );
+
+  await waitFor(() => {
+    expect(
+      useRequestStore
+        .getState()
+        .spec.params.map(({ key, value }) => [key, value]),
+    ).toEqual([
+      ["a", "1"],
+      ["a", "2"],
+    ]);
+  });
 });
 
 it("submits with Control+Enter", async () => {

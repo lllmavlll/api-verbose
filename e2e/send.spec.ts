@@ -21,6 +21,7 @@ test("send a request and see success and failure responses", async ({ page }) =>
   if (process.env.EVIDENCE_DIR) {
     await page.screenshot({
       path: path.join(process.env.EVIDENCE_DIR, "idle.png"),
+      caret: "initial",
       fullPage: true,
     });
   }
@@ -44,6 +45,7 @@ test("send a request and see success and failure responses", async ({ page }) =>
   if (process.env.EVIDENCE_DIR) {
     await page.screenshot({
       path: path.join(process.env.EVIDENCE_DIR, "success.png"),
+      caret: "initial",
       fullPage: true,
     });
   }
@@ -56,6 +58,7 @@ test("send a request and see success and failure responses", async ({ page }) =>
   if (process.env.EVIDENCE_DIR) {
     await page.screenshot({
       path: path.join(process.env.EVIDENCE_DIR, "error.png"),
+      caret: "initial",
       fullPage: true,
     });
   }

@@ -1,3 +1,6 @@
+import { createServer, request as nodeRequest } from "node:http";
+import type { AddressInfo } from "node:net";
+
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -70,6 +73,77 @@ describe("createPinnedRequestOptions", () => {
     const allCallback = vi.fn();
     options.lookup?.("api.example.com", { all: true }, allCallback);
     expect(allCallback).toHaveBeenCalledWith(null, [PUBLIC_V6]);
+  });
+
+  it("keeps duplicate same-name request headers as separate Node values", () => {
+    const options = createPinnedRequestOptions({
+      url: new URL("https://api.example.com/path"),
+      method: "GET",
+      headers: [
+        ["x-test", "one"],
+        ["x-test", "two"],
+      ],
+      address: PUBLIC_V4,
+      signal: new AbortController().signal,
+    });
+
+    expect(options.headers).toMatchObject({
+      "x-test": ["one", "two"],
+    });
+  });
+
+  it("emits duplicate same-name fields on the Node wire", async () => {
+    let observedRawHeaders: string[] = [];
+    const server = createServer((request, response) => {
+      observedRawHeaders = request.rawHeaders;
+      response.end("ok");
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
+
+    try {
+      const { port } = server.address() as AddressInfo;
+      const options = createPinnedRequestOptions({
+        url: new URL(`http://api.example:${port}/path`),
+        method: "GET",
+        headers: [
+          ["x-test", "one"],
+          ["x-test", "two"],
+        ],
+        address: { address: "127.0.0.1", family: 4 },
+        signal: new AbortController().signal,
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        const request = nodeRequest(options, (response) => {
+          response.resume();
+          response.once("end", resolve);
+        });
+        request.once("error", reject);
+        request.end();
+      });
+
+      const duplicatePairs: [string, string][] = [];
+      for (let index = 0; index + 1 < observedRawHeaders.length; index += 2) {
+        if (observedRawHeaders[index].toLowerCase() === "x-test") {
+          duplicatePairs.push([
+            observedRawHeaders[index],
+            observedRawHeaders[index + 1],
+          ]);
+        }
+      }
+      expect(duplicatePairs).toEqual([
+        ["x-test", "one"],
+        ["x-test", "two"],
+      ]);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
   });
 });
 
@@ -263,6 +337,76 @@ describe("performRelay", () => {
       expect.objectContaining({
         url: expect.objectContaining({ hostname: "next.example" }),
         address: PUBLIC_V6,
+      }),
+    );
+  });
+
+  it.each([
+    ["host", "https://attacker.example/final"],
+    ["scheme", "http://trusted.example/final"],
+  ])("drops user-supplied headers when a redirect changes %s", async (_part, location) => {
+    const requestImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        upstream({
+          status: 307,
+          statusText: "Temporary Redirect",
+          rawHeaders: ["Location", location],
+          body: body(),
+        }),
+      )
+      .mockResolvedValueOnce(upstream());
+
+    await performRelay(
+      {
+        method: "GET",
+        url: "https://trusted.example/start",
+        headers: [
+          ["Authorization", "Bearer secret"],
+          ["X-API-Key", "secret"],
+        ],
+      },
+      { requestImpl, resolve: resolvePublic },
+    );
+
+    expect(requestImpl).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        headers: [
+          ["authorization", "Bearer secret"],
+          ["x-api-key", "secret"],
+        ],
+      }),
+    );
+    expect(requestImpl).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ headers: [] }),
+    );
+  });
+
+  it("retains user-supplied headers on same-origin redirects", async () => {
+    const requestImpl = vi
+      .fn()
+      .mockResolvedValueOnce(
+        upstream({
+          status: 307,
+          statusText: "Temporary Redirect",
+          rawHeaders: ["Location", "/final"],
+          body: body(),
+        }),
+      )
+      .mockResolvedValueOnce(upstream());
+    const headers: [string, string][] = [["Authorization", "Bearer secret"]];
+
+    await performRelay(
+      { method: "GET", url: "https://trusted.example/start", headers },
+      { requestImpl, resolve: resolvePublic },
+    );
+
+    expect(requestImpl).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        headers: [["authorization", "Bearer secret"]],
       }),
     );
   });

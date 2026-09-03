@@ -54,7 +54,7 @@ export type SendSuccess = {
 
 export type SendFailure = {
   ok: false;
-  kind: "invalid-url" | "network";
+  kind: "invalid-url" | "invalid-headers" | "network";
   message: string;
 };
 

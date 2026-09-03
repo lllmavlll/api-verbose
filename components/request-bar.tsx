@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { FormEvent, KeyboardEvent, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import type { HttpMethod } from "@/lib/http/types";
 import { isAbsoluteHttpUrl } from "@/lib/http/url";
+import { useRequestStore } from "@/lib/store/request-store";
 import { cn } from "@/lib/utils";
 
 const HTTP_METHODS: HttpMethod[] = [
@@ -38,13 +39,32 @@ const METHOD_COLORS: Record<HttpMethod, string> = {
 
 type RequestBarProps = {
   pending: boolean;
-  onSubmit: (input: { method: HttpMethod; url: string }) => void;
+  onSubmit: () => void;
 };
 
 export function RequestBar({ pending, onSubmit }: RequestBarProps) {
-  const [method, setMethod] = useState<HttpMethod>("GET");
-  const [url, setUrl] = useState("");
+  const method = useRequestStore((state) => state.spec.method);
+  const storeUrl = useRequestStore((state) => state.spec.url);
+  const setMethod = useRequestStore((state) => state.setMethod);
+  const setStoreUrl = useRequestStore((state) => state.setUrl);
+  const [url, setUrl] = useState(() => useRequestStore.getState().spec.url);
   const [error, setError] = useState<string | null>(null);
+  const urlFocused = useRef(false);
+
+  useEffect(() => {
+    if (!urlFocused.current) {
+      setUrl(storeUrl);
+    }
+  }, [storeUrl]);
+
+  useEffect(() => {
+    if (url === storeUrl) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => setStoreUrl(url), 150);
+    return () => window.clearTimeout(timer);
+  }, [setStoreUrl, storeUrl, url]);
 
   function submit() {
     if (pending) {
@@ -58,7 +78,9 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
     }
 
     setError(null);
-    onSubmit({ method, url: trimmedUrl });
+    setUrl(trimmedUrl);
+    setStoreUrl(trimmedUrl);
+    onSubmit();
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -119,9 +141,16 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
           autoComplete="url"
           className="h-10 flex-1 font-mono"
           disabled={pending}
+          onBlur={(event) => {
+            urlFocused.current = false;
+            setStoreUrl(event.currentTarget.value);
+          }}
           onChange={(event) => {
             setUrl(event.target.value);
             if (error) setError(null);
+          }}
+          onFocus={() => {
+            urlFocused.current = true;
           }}
           placeholder="https://api.example.com/resource"
           spellCheck={false}

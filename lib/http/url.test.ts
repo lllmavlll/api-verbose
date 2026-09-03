@@ -10,7 +10,13 @@ describe("isAbsoluteHttpUrl", () => {
     },
   );
 
-  it.each(["", "/relative", "file:///tmp/test", "not a url"])(
+  it.each([
+    "",
+    "/relative",
+    "file:///tmp/test",
+    "not a url",
+    "https://api.test/path?a=%",
+  ])(
     "rejects %s",
     (value) => {
       expect(isAbsoluteHttpUrl(value)).toBe(false);

@@ -3,6 +3,8 @@ import { relayFetch } from "./relay-client";
 import { isAbsoluteHttpUrl } from "./url";
 
 const INVALID_URL_MESSAGE = "Enter a valid absolute HTTP or HTTPS URL.";
+const INVALID_HEADERS_MESSAGE =
+  "Check the request header names and values, then try again.";
 const NETWORK_ERROR_MESSAGE = "The request failed before a response arrived.";
 const AMBIGUOUS_WRITE_MESSAGE =
   "The direct request failed, but it was not retried because doing so could duplicate a write.";
@@ -110,9 +112,27 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
 
   const startedAt = performance.now();
   let response: Response;
+  const headerPairs = spec.headers.map(
+    ({ key, value }) => [key, value] as [string, string],
+  );
+  const headers = new Headers();
+  try {
+    for (const [key, value] of headerPairs) {
+      headers.append(key, value);
+    }
+  } catch {
+    return {
+      ok: false,
+      kind: "invalid-headers",
+      message: INVALID_HEADERS_MESSAGE,
+    };
+  }
 
   try {
-    response = await fetch(spec.url, { method: spec.method });
+    response = await fetch(spec.url, {
+      method: spec.method,
+      headers,
+    });
   } catch (error) {
     if (!(error instanceof TypeError)) {
       return { ok: false, kind: "network", message: NETWORK_ERROR_MESSAGE };
@@ -122,7 +142,11 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
       return { ok: false, kind: "network", message: AMBIGUOUS_WRITE_MESSAGE };
     }
 
-    const relayed = await relayFetch({ method: spec.method, url: spec.url });
+    const relayed = await relayFetch({
+      method: spec.method,
+      url: spec.url,
+      headers: headerPairs,
+    });
     if (!relayed.ok) {
       return { ok: false, kind: "network", message: relayed.message };
     }

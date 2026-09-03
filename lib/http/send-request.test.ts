@@ -19,6 +19,29 @@ const spec = (method: HttpMethod, url: string): RequestSpec => ({
 });
 
 describe("sendRequest", () => {
+  it("appends headers from the request spec to fetch", async () => {
+    const fetchSpy = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        void input;
+        void init;
+        return new Response("ok");
+      },
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+
+    await sendRequest({
+      ...spec("GET", "https://api.test/x"),
+      headers: [
+        { id: "header-1", key: "X-Test", value: "one", enabled: true },
+        { id: "header-2", key: "X-Test", value: "two", enabled: true },
+      ],
+    });
+
+    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit;
+    const sent = new Headers(init.headers);
+    expect(sent.get("x-test")).toBe("one, two");
+  });
+
   it("measures until fetch resolves without including body decoding", async () => {
     let clock = 100;
     vi.spyOn(performance, "now").mockImplementation(() => clock);
@@ -143,6 +166,7 @@ describe("sendRequest", () => {
     expect(relaySpy).toHaveBeenCalledWith({
       method: "GET",
       url: "https://api.test/x",
+      headers: [],
     });
     expect(result).toMatchObject({
       ok: true,
@@ -152,6 +176,64 @@ describe("sendRequest", () => {
       via: "relay",
     });
   });
+
+  it("preserves duplicate request headers through relay fallback", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    const relaySpy = vi.spyOn(relayClient, "relayFetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: [],
+      bodyText: "ok",
+    });
+
+    await sendRequest({
+      ...spec("GET", "https://api.test/x"),
+      headers: [
+        { id: "header-1", key: "X-Test", value: "one", enabled: true },
+        { id: "header-2", key: "X-Test", value: "two", enabled: true },
+      ],
+    });
+
+    expect(relaySpy).toHaveBeenCalledWith({
+      method: "GET",
+      url: "https://api.test/x",
+      headers: [
+        ["X-Test", "one"],
+        ["X-Test", "two"],
+      ],
+    });
+  });
+
+  it.each([
+    ["Bad Header", "value"],
+    ["X-Test", "line one\nline two"],
+  ])(
+    "returns a local validation failure for an invalid header without relaying",
+    async (key, value) => {
+      const fetchSpy = vi.fn();
+      vi.stubGlobal("fetch", fetchSpy);
+      const relaySpy = vi.spyOn(relayClient, "relayFetch");
+
+      const result = await sendRequest({
+        ...spec("GET", "https://api.test/x"),
+        headers: [{ id: "invalid", key, value, enabled: true }],
+      });
+
+      expect(result).toMatchObject({
+        ok: false,
+        kind: "invalid-headers",
+        message: expect.stringMatching(/header/i),
+      });
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(relaySpy).not.toHaveBeenCalled();
+    },
+  );
 
   it.each(["POST", "PATCH"] as const)(
     "does not silently re-fire an ambiguous %s rejection",
@@ -334,6 +416,7 @@ describe("sendRequest", () => {
 
     expect(fetchSpy).toHaveBeenCalledWith("https://api.test/x", {
       method: "POST",
+      headers: new Headers(),
     });
     expect(fetchSpy.mock.calls[0]?.[1]).not.toHaveProperty("body");
   });

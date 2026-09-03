@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { RequestBar } from "@/components/request-bar";
+import { RequestTabs } from "@/components/request-tabs";
 import { ResponsePanel } from "@/components/response-panel";
 import { sendRequest } from "@/lib/http/send-request";
-import type { HttpMethod, RequestSpec, SendResult } from "@/lib/http/types";
+import type { SendResult } from "@/lib/http/types";
+import { composeRequest } from "@/lib/request/compose";
+import { useRequestStore } from "@/lib/store/request-store";
+
+const subscribeToHydration = () => () => {};
 
 export default function Home() {
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
   const [pending, setPending] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [result, setResult] = useState<SendResult | null>(null);
@@ -26,19 +36,12 @@ export default function Home() {
     return () => window.clearInterval(timer);
   }, [pending]);
 
-  async function handleSubmit(input: { method: HttpMethod; url: string }) {
+  async function handleSubmit() {
     if (pendingRef.current) {
       return;
     }
 
-    const spec: RequestSpec = {
-      method: input.method,
-      url: input.url,
-      headers: [],
-      params: [],
-      auth: { kind: "none" },
-      body: { kind: "none" },
-    };
+    const spec = composeRequest(useRequestStore.getState().spec);
 
     pendingRef.current = true;
     startedAtRef.current = performance.now();
@@ -79,8 +82,19 @@ export default function Home() {
           ) : null}
         </header>
 
-        <section className="mb-5 rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur sm:p-5">
-          <RequestBar pending={pending} onSubmit={handleSubmit} />
+        <section
+          className="mb-5 rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur sm:p-5"
+          aria-busy={!hydrated}
+        >
+          <fieldset
+            className="min-w-0 border-0 p-0"
+            disabled={!hydrated}
+          >
+            <RequestBar pending={pending} onSubmit={handleSubmit} />
+            <div className="mt-4 border-t pt-4">
+              <RequestTabs />
+            </div>
+          </fieldset>
         </section>
 
         <ResponsePanel pending={pending} result={result} />

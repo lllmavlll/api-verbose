@@ -313,7 +313,7 @@ export async function performRelay(
   let currentUrl = relayRequest.url;
   let method = relayRequest.method;
   let body = relayRequest.body;
-  const headers = stripHopByHop(relayRequest.headers ?? [], true);
+  let headers = stripHopByHop(relayRequest.headers ?? [], true);
 
   try {
     for (let redirectCount = 0; ; redirectCount += 1) {
@@ -348,6 +348,9 @@ export async function performRelay(
           );
         }
         const next = new URL(location, target.url);
+        if (next.origin !== target.url.origin) {
+          headers = [];
+        }
         ({ method, body } = redirectRequest(upstream.status, method, body));
         currentUrl = next.href;
         continue;
