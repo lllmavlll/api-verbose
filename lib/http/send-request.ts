@@ -1,4 +1,5 @@
 import type { RequestSpec, SendResult } from "./types";
+import { buildBody } from "./body";
 import { relayFetch } from "./relay-client";
 import { isAbsoluteHttpUrl } from "./url";
 
@@ -112,9 +113,23 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
 
   const startedAt = performance.now();
   let response: Response;
-  const headerPairs = spec.headers.map(
-    ({ key, value }) => [key, value] as [string, string],
-  );
+  const builtBody = buildBody(spec);
+  const headerPairs = spec.headers.flatMap(({ enabled, key, value }) => {
+    if (!enabled || key === "") {
+      return [];
+    }
+    if (
+      builtBody?.contentType &&
+      key.toLowerCase() === "content-type" &&
+      value.trim() === ""
+    ) {
+      return [];
+    }
+    return [[key, value] as [string, string]];
+  });
+  if (builtBody?.contentType) {
+    headerPairs.push(["Content-Type", builtBody.contentType]);
+  }
   const headers = new Headers();
   try {
     for (const [key, value] of headerPairs) {
@@ -132,6 +147,7 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
     response = await fetch(spec.url, {
       method: spec.method,
       headers,
+      ...(builtBody ? { body: builtBody.bodyText } : {}),
     });
   } catch (error) {
     if (!(error instanceof TypeError)) {
@@ -146,6 +162,7 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
       method: spec.method,
       url: spec.url,
       headers: headerPairs,
+      ...(builtBody ? { body: builtBody.bodyText } : {}),
     });
     if (!relayed.ok) {
       return { ok: false, kind: "network", message: relayed.message };

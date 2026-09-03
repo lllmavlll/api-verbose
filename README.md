@@ -25,6 +25,8 @@ Duplicate header rows remain separate in the request model. On the direct browse
 
 The **Auth** panel can add a Bearer token, Basic credentials, or an API key sent as either a header or query parameter. Auth values remain in memory only and are not persisted. When an auth preset collides with a manual row, the preset wins and the overridden row is marked in the table.
 
+Use **Body** to keep separate in-session drafts for JSON, URL-encoded form fields, and raw text. JSON and raw bodies use the CodeMirror editor; malformed JSON is allowed and sent exactly as typed. Verbose supplies the matching `Content-Type` automatically unless an enabled header row already sets one. Bodies are sent only for `POST`, `PUT`, `PATCH`, and `DELETE`; other methods keep the draft visible and show that it will not be sent.
+
 ## Verify
 
 ```sh

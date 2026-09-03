@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { Auth, HttpMethod, KV, RequestSpec } from "@/lib/http/types";
+import type { Auth, Body, HttpMethod, KV, RequestSpec } from "@/lib/http/types";
 import { parseParams, serializeParams } from "@/lib/request/params";
 
 export const INITIAL_SPEC: RequestSpec = {
@@ -19,6 +19,7 @@ export interface RequestStore {
   setParams(params: KV[]): void;
   setHeaders(headers: KV[]): void;
   setAuth(auth: Auth): void;
+  setBody(body: Body): void;
   loadSpec(spec: RequestSpec): void;
   reset(): void;
 }
@@ -65,6 +66,7 @@ export const useRequestStore = create<RequestStore>((set) => ({
   setHeaders: (headers) =>
     set(({ spec }) => ({ spec: { ...spec, headers } })),
   setAuth: (auth) => set(({ spec }) => ({ spec: { ...spec, auth } })),
+  setBody: (body) => set(({ spec }) => ({ spec: { ...spec, body } })),
   loadSpec: (spec) =>
     set({
       spec: {

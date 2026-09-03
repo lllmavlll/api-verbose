@@ -91,6 +91,7 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
   function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
+      event.stopPropagation();
       submit();
     }
   }

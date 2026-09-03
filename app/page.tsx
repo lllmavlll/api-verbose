@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { RequestBar } from "@/components/request-bar";
+import { RequestBody } from "@/components/request-body";
 import { RequestTabs } from "@/components/request-tabs";
 import { ResponsePanel } from "@/components/response-panel";
 import { sendRequest } from "@/lib/http/send-request";
@@ -57,6 +64,16 @@ export default function Home() {
     }
   }
 
+  function handleWorkspaceKeyDown(event: KeyboardEvent<HTMLFieldSetElement>) {
+    if (
+      event.key === "Enter" &&
+      (event.metaKey || event.ctrlKey)
+    ) {
+      event.preventDefault();
+      void handleSubmit();
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,var(--color-muted),transparent_42%)] px-4 py-8 sm:px-8 sm:py-12">
       <div className="mx-auto max-w-6xl">
@@ -89,8 +106,12 @@ export default function Home() {
           <fieldset
             className="min-w-0 border-0 p-0"
             disabled={!hydrated}
+            onKeyDown={handleWorkspaceKeyDown}
           >
             <RequestBar pending={pending} onSubmit={handleSubmit} />
+            <div className="mt-4 border-t pt-4">
+              <RequestBody />
+            </div>
             <div className="mt-4 border-t pt-4">
               <RequestTabs />
             </div>

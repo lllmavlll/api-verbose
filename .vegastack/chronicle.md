@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Requests can now carry the body a developer intends ([#5](https://github.com/dev-mahesh-peerxp/api-verbose/issues/5))
+
+- **What:** Verbose now keeps separate in-session drafts for JSON, URL-encoded form, and raw request bodies. It sends the selected non-empty body only on body-capable methods, supplies the matching Content-Type unless an explicit header wins, and keeps malformed JSON sendable with a quiet warning.
+- **Why:** The request builder needed payload editing to complete the everyday REST loop without weakening the existing request-composition or relay boundaries.
+- **How it went:** The existing `RequestSpec` and relay body seam fit without reshaping; CodeMirror stayed inside a small client-only wrapper, and deterministic browser echoes replaced a flaky third-party test dependency while still asserting the exact body and headers leaving the browser.
+- **Changed:** none/JSON/form/raw body selector · JSON language editor and raw text editor · ordered URL-encoded form rows · automatic Content-Type with explicit-header override · body-method note · invalid-JSON warning · editor-aware send shortcut
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/5-typed-request-bodies
+
 ## 03-09-2026 — A full request can be shaped before it is sent ([#4](https://github.com/dev-mahesh-peerxp/api-verbose/issues/4))
 
 - **What:** Verbose now has editable query-parameter and header tables plus None, Bearer, Basic, and API-key auth presets. Query rows stay synchronized with the URL, auth collisions remain visible, and the fully composed request reaches the existing send path without storing credentials.
