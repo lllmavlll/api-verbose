@@ -11,6 +11,8 @@ Verbose sends directly from the browser first. If an idempotent request is block
 - **Preview** renders HTML inside a script-free, network-blocked sandbox and shows image responses from a local blob URL.
 - Redirected requests show the known path from the original URL to the final response.
 
+Every successful response also exposes counted **Headers** and **Cookies** tabs. Headers are sorted into a monospace name/value table, while visible `Set-Cookie` values are parsed into cookie attributes; browsers may hide those cookie headers on direct requests, so the empty state points to the relay path.
+
 Screenshots: [Pretty (dark)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-dark.png) · [Pretty (light)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-light.png) · [Raw](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-raw.png) · [sandboxed HTML Preview](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-preview-html.png) · [redirect chain](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-redirect-chain.png)
 
 ## Run locally

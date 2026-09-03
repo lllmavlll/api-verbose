@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { expect, it } from "vitest";
 
 import { ResponsePanel } from "./response-panel";
@@ -84,4 +85,65 @@ it("does not show a relay indicator for a direct response", () => {
   );
 
   expect(screen.queryByText(/via relay/i)).not.toBeInTheDocument();
+});
+
+const tabSuccess = {
+  ...success,
+  via: "relay" as const,
+  headers: [
+    ["content-type", "application/json"],
+    ["set-cookie", "sid=abc; Path=/; HttpOnly"],
+  ] as [string, string][],
+};
+
+it("labels response Headers and Cookies tabs with row counts", () => {
+  render(<ResponsePanel pending={false} result={tabSuccess} />);
+
+  const responseViews = screen.getByRole("tablist", {
+    name: "Response data views",
+  });
+  expect(
+    within(responseViews).getByRole("tab", { name: "Headers 2" }),
+  ).toBeInTheDocument();
+  expect(
+    within(responseViews).getByRole("tab", { name: "Cookies 1" }),
+  ).toBeInTheDocument();
+});
+
+it("shows headers and parsed cookies in their response tabs", async () => {
+  const user = userEvent.setup();
+  render(<ResponsePanel pending={false} result={tabSuccess} />);
+
+  const responseViews = screen.getByRole("tablist", {
+    name: "Response data views",
+  });
+  await user.click(
+    within(responseViews).getByRole("tab", { name: "Headers 2" }),
+  );
+  expect(screen.getByText("content-type")).toBeInTheDocument();
+
+  await user.click(
+    within(responseViews).getByRole("tab", { name: "Cookies 1" }),
+  );
+  expect(screen.getByText("sid")).toBeInTheDocument();
+  expect(screen.getByText("abc")).toBeInTheDocument();
+});
+
+it("labels Cookies 0 and shows the empty state when none are visible", async () => {
+  const user = userEvent.setup();
+  render(
+    <ResponsePanel
+      pending={false}
+      result={{
+        ...success,
+        via: "direct",
+        headers: [["content-type", "text/html"]],
+      }}
+    />,
+  );
+
+  const cookiesTab = screen.getByRole("tab", { name: "Cookies 0" });
+  await user.click(cookiesTab);
+  expect(screen.getByText(/no cookies set/i)).toBeInTheDocument();
+  expect(screen.getByText(/browser may hide set-cookie/i)).toBeInTheDocument();
 });

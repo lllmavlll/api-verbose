@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Response metadata is now readable at a glance ([#7](https://github.com/dev-mahesh-peerxp/api-verbose/issues/7))
+
+- **What:** Successful responses now include counted Headers and Cookies views alongside the body. Headers are sorted into a monospace name/value table, and visible Set-Cookie values become structured rows with their common attributes and flags.
+- **Why:** Developers needed to inspect response metadata without decoding a raw header dump or mentally parsing cookie directives.
+- **How it went:** The response renderer and required shadcn primitives had already landed on main, so the work composed around them instead of regenerating UI files. The parser needed explicit handling for folded cookie headers so an Expires date comma is never mistaken for a cookie boundary.
+- **Changed:** counted response data tabs · sorted header rows · parsed cookie attributes · Max-Age precedence · relay-aware empty state · deterministic browser coverage
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/7-headers-cookies-tables
+
 ## 03-09-2026 — Requests can move cleanly between Verbose and code ([#10](https://github.com/dev-mahesh-peerxp/api-verbose/issues/10))
 
 - **What:** Verbose can now import a supported curl command into the live request builder and report every unsupported flag it encounters. Developers can also copy the effective request as curl, JavaScript fetch, or Python requests code with target-correct escaping and a visible clipboard result.

@@ -1,6 +1,8 @@
 import { AlertCircle, ArrowRight, LoaderCircle } from "lucide-react";
 
 import { ResponseBody } from "@/components/response-body";
+import { ResponseCookiesTable } from "@/components/response-cookies-table";
+import { ResponseHeadersTable } from "@/components/response-headers-table";
 import {
   Alert,
   AlertDescription,
@@ -8,6 +10,13 @@ import {
 } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { cookiesFromHeaders } from "@/lib/http/parse-set-cookie";
 import type { SendResult } from "@/lib/http/types";
 import { contentTypeOf, formatSize } from "@/lib/render/meta";
 
@@ -68,6 +77,7 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
   const contentEncoding = result.headers.find(
     ([name]) => name.toLowerCase() === "content-encoding",
   )?.[1];
+  const cookieCount = cookiesFromHeaders(result.headers).length;
 
   return (
     <Card
@@ -142,7 +152,28 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
         </section>
       ) : null}
       <CardContent className="px-0">
-        <ResponseBody result={result} />
+        <Tabs className="gap-0" defaultValue="body">
+          <TabsList
+            aria-label="Response data views"
+            className="mx-4 mt-3"
+            variant="line"
+          >
+            <TabsTrigger value="body">Body</TabsTrigger>
+            <TabsTrigger value="headers">
+              Headers {result.headers.length}
+            </TabsTrigger>
+            <TabsTrigger value="cookies">Cookies {cookieCount}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="body">
+            <ResponseBody result={result} />
+          </TabsContent>
+          <TabsContent className="pt-3" value="headers">
+            <ResponseHeadersTable headers={result.headers} />
+          </TabsContent>
+          <TabsContent className="pt-3" value="cookies">
+            <ResponseCookiesTable headers={result.headers} />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
