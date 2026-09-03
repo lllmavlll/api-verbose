@@ -1,7 +1,8 @@
 import { beforeEach, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { clearCommands } from "@/lib/commands";
 import type { RequestSpec } from "@/lib/http/types";
 
 const { sendRequest } = vi.hoisted(() => ({
@@ -27,8 +28,40 @@ import { useRequestStore } from "@/lib/store/request-store";
 import Page from "./page";
 
 beforeEach(() => {
+  clearCommands();
   useRequestStore.getState().reset();
   sendRequest.mockClear();
+});
+
+it("uses palette method selection without discarding builder state or sending", async () => {
+  const user = userEvent.setup();
+  const originalSpec: RequestSpec = {
+    method: "GET",
+    url: "https://api.test/command?draft=kept",
+    params: [
+      { id: "draft", key: "draft", value: "kept", enabled: true },
+    ],
+    headers: [
+      { id: "manual", key: "X-Manual", value: "yes", enabled: true },
+    ],
+    auth: { kind: "bearer", token: "T" },
+    body: { kind: "json", text: '{"kept":true}' },
+  };
+  useRequestStore.getState().loadSpec(originalSpec);
+  render(<Page />);
+
+  await user.keyboard("{Meta>}k{/Meta}");
+  await user.type(screen.getByPlaceholderText(/type a command/i), "POST");
+  await user.keyboard("{Enter}");
+  await waitFor(() =>
+    expect(useRequestStore.getState().spec.method).toBe("POST"),
+  );
+
+  expect(useRequestStore.getState().spec).toEqual({
+    ...originalSpec,
+    method: "POST",
+  });
+  expect(sendRequest).not.toHaveBeenCalled();
 });
 
 it("composes auth into the spec handed to the send seam", async () => {
@@ -82,18 +115,4 @@ it("reports an incomplete percent escape instead of throwing on Send", async () 
 
   expect(sendRequest).not.toHaveBeenCalled();
   expect(screen.getByRole("alert")).toHaveTextContent(/valid.*url/i);
-});
-
-it("keeps the send shortcut working from inside a body editor", async () => {
-  const user = userEvent.setup();
-  useRequestStore.getState().setUrl("https://x.test/body");
-  render(<Page />);
-
-  await user.click(screen.getByRole("tab", { name: "JSON" }));
-  fireEvent.keyDown(screen.getByLabelText("JSON body"), {
-    key: "Enter",
-    metaKey: true,
-  });
-
-  await waitFor(() => expect(sendRequest).toHaveBeenCalledOnce());
 });

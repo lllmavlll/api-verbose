@@ -63,6 +63,12 @@ it("blocks an invalid URL and shows a message", async () => {
   expect(screen.getByText(/valid.*url/i)).toBeInTheDocument();
 });
 
+it("marks the URL input for contextual history shortcuts", () => {
+  render(<RequestBar pending={false} onSubmit={vi.fn()} />);
+
+  expect(screen.getByRole("textbox")).toHaveAttribute("data-request-url");
+});
+
 it("reconciles a valid URL query into the param rows", async () => {
   const user = userEvent.setup();
   render(<RequestBar pending={false} onSubmit={vi.fn()} />);
@@ -82,17 +88,6 @@ it("reconciles a valid URL query into the param rows", async () => {
       ["a", "2"],
     ]);
   });
-});
-
-it("submits with Control+Enter", async () => {
-  const onSubmit = vi.fn();
-  const user = userEvent.setup();
-  render(<RequestBar pending={false} onSubmit={onSubmit} />);
-
-  await user.type(screen.getByRole("textbox"), "https://api.test/x");
-  await user.keyboard("{Control>}{Enter}{/Control}");
-
-  expect(onSubmit).toHaveBeenCalledOnce();
 });
 
 it("disables Send while a request is pending", () => {

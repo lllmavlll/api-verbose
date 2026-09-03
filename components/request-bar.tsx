@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,20 +12,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { HttpMethod } from "@/lib/http/types";
+import { HTTP_METHODS, type HttpMethod } from "@/lib/http/types";
 import { isAbsoluteHttpUrl } from "@/lib/http/url";
 import { useRequestStore } from "@/lib/store/request-store";
 import { cn } from "@/lib/utils";
-
-const HTTP_METHODS: HttpMethod[] = [
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-  "HEAD",
-  "OPTIONS",
-];
 
 const METHOD_COLORS: Record<HttpMethod, string> = {
   GET: "text-method-get",
@@ -88,19 +78,11 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
     submit();
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-      event.preventDefault();
-      event.stopPropagation();
-      submit();
-    }
-  }
-
   return (
     <form
       className="space-y-2"
+      id="request-form"
       noValidate
-      onKeyDown={handleKeyDown}
       onSubmit={handleSubmit}
     >
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -136,6 +118,7 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
         </label>
         <Input
           id="request-url"
+          data-request-url=""
           aria-describedby={error ? "request-url-error" : undefined}
           aria-invalid={error ? true : undefined}
           autoCapitalize="none"

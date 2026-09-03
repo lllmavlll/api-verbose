@@ -39,6 +39,7 @@ Line prefixes: `auto:` (agent just does it) · `ask:` (operator's word first) ·
 
 - start: `npm run dev` · http://localhost:3000
 - Send loop: pick a method + URL, hit send (⌘↵), response renders with status/timing/size
+- Keyboard-only: ⌘K → pick method → ⌘\ focus URL → type → ⌘↵ sends
 - CORS path: a cross-origin request that browsers block falls back through the Next.js relay route handler and still returns
 - Response view: JSON highlighted in code blocks; Headers / Cookies / Tests tabs populate
 - Persistence: reload the page — history and saved requests survive (IndexedDB)

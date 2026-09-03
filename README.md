@@ -22,7 +22,17 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), enter an endpoint such as `https://api.github.com/zen`, and select **Send**. You can also submit with <kbd>⌘</kbd>+<kbd>Enter</kbd> or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>.
+Open [http://localhost:3000](http://localhost:3000), enter an endpoint such as `https://api.github.com/zen`, and select **Send**. The request flow is fully keyboard-operable through the command palette and global shortcuts.
+
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Open command palette | <kbd>⌘</kbd>+<kbd>K</kbd> | <kbd>Ctrl</kbd>+<kbd>K</kbd> |
+| Send request | <kbd>⌘</kbd>+<kbd>Enter</kbd> | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> |
+| Focus URL | <kbd>⌘</kbd>+<kbd>\\</kbd> | <kbd>Ctrl</kbd>+<kbd>\\</kbd> |
+| Show active shortcuts | <kbd>?</kbd> | <kbd>?</kbd> |
+| Recall history while URL is focused | <kbd>↑</kbd> / <kbd>↓</kbd> | <kbd>↑</kbd> / <kbd>↓</kbd> |
+
+History navigation becomes active when the request-history feature registers its commands; until then, the arrow keys keep their native behavior.
 
 The relay is a Node-runtime Next.js Route Handler in this same app. It needs no separate service, account, persistence, or secrets. Self-host on a Node-compatible Next.js runtime: the relay relies on Node DNS and HTTP(S) connection controls to pin every request and redirect to the public address it validated while preserving the target hostname for Host/SNI.
 

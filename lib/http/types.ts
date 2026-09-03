@@ -7,6 +7,16 @@ export type HttpMethod =
   | "HEAD"
   | "OPTIONS";
 
+export const HTTP_METHODS: readonly HttpMethod[] = [
+  "GET",
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE",
+  "HEAD",
+  "OPTIONS",
+];
+
 export interface KV {
   id: string;
   key: string;

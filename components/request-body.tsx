@@ -1,27 +1,31 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 
+import { KvEditorTable } from "@/components/kv-editor-table";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CodeEditor } from "@/components/ui/code-editor";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { bodyAllows, isValidJson } from "@/lib/http/body";
 import type { Body, KV } from "@/lib/http/types";
 import { useRequestStore } from "@/lib/store/request-store";
 
 type BodyKind = Body["kind"];
+
+const CodeEditor = dynamic(
+  () => import("@/components/ui/code-editor").then((module) => module.CodeEditor),
+  {
+    loading: () => (
+      <div className="min-h-32 rounded-md border bg-background p-3 text-xs text-muted-foreground">
+        Loading editor…
+      </div>
+    ),
+    ssr: false,
+  },
+);
 
 const BODY_TYPES: { value: BodyKind; label: string }[] = [
   { value: "none", label: "None" },
@@ -99,14 +103,6 @@ export function RequestBody() {
   function changeFormFields(fields: KV[]) {
     setFormFields(fields);
     setBody({ kind: "form", fields });
-  }
-
-  function updateFormField(id: string, patch: Partial<KV>) {
-    changeFormFields(
-      formFields.map((field) =>
-        field.id === id ? { ...field, ...patch } : field,
-      ),
-    );
   }
 
   return (
@@ -191,83 +187,12 @@ export function RequestBody() {
               Add field
             </Button>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12 text-center">
-                  <span className="sr-only">Enabled</span>
-                </TableHead>
-                <TableHead>Key</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead className="w-12">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {formFields.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    className="py-6 text-center text-sm text-muted-foreground"
-                    colSpan={4}
-                  >
-                    Add a field to build a URL-encoded body.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                formFields.map((field, index) => (
-                  <TableRow key={field.id}>
-                    <TableCell className="text-center">
-                      <Checkbox
-                        aria-label={`Enable ${field.key || `form field ${index + 1}`}`}
-                        checked={field.enabled}
-                        onCheckedChange={(enabled) =>
-                          updateFormField(field.id, { enabled })
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="min-w-40">
-                      <Input
-                        aria-label={`Form body key ${index + 1}`}
-                        className="font-mono"
-                        onChange={(event) =>
-                          updateFormField(field.id, { key: event.target.value })
-                        }
-                        placeholder="Key"
-                        value={field.key}
-                      />
-                    </TableCell>
-                    <TableCell className="min-w-40">
-                      <Input
-                        aria-label={`Form body value ${index + 1}`}
-                        className="font-mono"
-                        onChange={(event) =>
-                          updateFormField(field.id, { value: event.target.value })
-                        }
-                        placeholder="Value"
-                        value={field.value}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        aria-label={`Remove ${field.key || `form field ${index + 1}`}`}
-                        onClick={() =>
-                          changeFormFields(
-                            formFields.filter(({ id }) => id !== field.id),
-                          )
-                        }
-                        size="icon-sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <Trash2 aria-hidden />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          <KvEditorTable
+            emptyMessage="Add a field to build a URL-encoded body."
+            label="Form body"
+            onChange={changeFormFields}
+            rows={formFields}
+          />
         </div>
       ) : null}
 

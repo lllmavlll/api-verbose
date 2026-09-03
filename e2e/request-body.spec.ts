@@ -42,9 +42,11 @@ test("body editors show JSON, form, and method-gated states", async ({ page }) =
 test("JSON text is sent verbatim with an automatic content type", async ({
   page,
 }) => {
+  let requestCount = 0;
   let requestBody: string | null = null;
   let requestContentType: string | undefined;
   await page.route("https://api.test/json", async (route) => {
+    requestCount += 1;
     requestBody = route.request().postData();
     requestContentType = route.request().headers()["content-type"];
     await route.fulfill({
@@ -66,6 +68,7 @@ test("JSON text is sent verbatim with an automatic content type", async ({
   await expect(page.getByText(/"ok": true/)).toBeVisible();
   expect(requestBody).toBe('{"ok":true}');
   expect(requestContentType).toBe("application/json");
+  expect(requestCount).toBe(1);
 });
 
 test("whitespace-only JSON is omitted without a misleading invalid hint", async ({

@@ -129,7 +129,7 @@ test("a metadata target is blocked with a named relay error", async ({ page }) =
   }
 });
 
-test("builder headers and auth reach relay fallback as ordered tuples", async ({
+test("command Send carries builder headers and auth through relay fallback", async ({
   page,
 }) => {
   let relayPayload: unknown;
@@ -150,6 +150,7 @@ test("builder headers and auth reach relay fallback as ordered tuples", async ({
     });
   });
   await page.goto("/");
+  await expect(page.locator("html")).toHaveAttribute("data-keyboard-ready", "true");
 
   await page.getByLabel("Request URL").fill("https://api.test/echo");
   const headers = page.getByRole("region", { name: "Headers" });
@@ -161,7 +162,7 @@ test("builder headers and auth reach relay fallback as ordered tuples", async ({
   await page.getByRole("option", { name: "Bearer token" }).click();
   await page.getByLabel("Token").fill("secret-token");
 
-  await page.getByRole("button", { name: /^send$/i }).click();
+  await page.keyboard.press("ControlOrMeta+Enter");
 
   await expect(page.getByText(/via relay/i)).toBeVisible();
   await expect.poll(() => relayPayload).toEqual({

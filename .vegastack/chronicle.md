@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Every core request action is now at your fingertips ([#13](https://github.com/dev-mahesh-peerxp/api-verbose/issues/13))
+
+- **What:** Verbose now has a searchable command palette and a shared keyboard-shortcut layer. A developer can choose a method, focus the URL, and send a request without reaching for the mouse, while a help dialog always reflects the commands currently available.
+- **Why:** The app needed one discoverable keyboard system that core actions and future history, theme, and saved-request features can extend without duplicated handlers or dead commands.
+- **How it went:** The current shadcn generator uses the repository's Base UI style. As the request builder, relay, and typed-body editor landed on main, the command layer was repeatedly reconciled with their Zustand-owned request state and composed send path. The final integration keeps CodeMirror's editor-aware key behavior while routing every send shortcut through the same validated form and body-capable transport path.
+- **Changed:** Searchable ⌘K / Ctrl+K palette · global send and focus shortcuts · store-backed palette method switching · composed builder, typed-body, and relay-aware command send · discoverable shortcut help · optional command registrations for future sibling features · keyboard-only browser coverage
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/13-command-palette
+
 ## 03-09-2026 — Responses now read like typeset documents ([#6](https://github.com/dev-mahesh-peerxp/api-verbose/issues/6))
 
 - **What:** Successful responses now open in a richer panel with theme-aware syntax highlighting, exact Raw text, safe HTML and image previews, content metadata, and redirect context. Large responses skip highlighting so the reading surface stays responsive.

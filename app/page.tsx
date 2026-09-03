@@ -1,17 +1,13 @@
 "use client";
 
-import {
-  type KeyboardEvent,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { KeyboardProvider } from "@/components/keyboard-provider";
 import { RequestBar } from "@/components/request-bar";
 import { RequestBody } from "@/components/request-body";
 import { RequestTabs } from "@/components/request-tabs";
 import { ResponsePanel } from "@/components/response-panel";
+import { useCoreCommands } from "@/components/use-core-commands";
 import { sendRequest } from "@/lib/http/send-request";
 import type { SendResult } from "@/lib/http/types";
 import { composeRequest } from "@/lib/request/compose";
@@ -25,6 +21,7 @@ export default function Home() {
     () => true,
     () => false,
   );
+  const setMethod = useRequestStore((state) => state.setMethod);
   const [pending, setPending] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [result, setResult] = useState<SendResult | null>(null);
@@ -64,62 +61,66 @@ export default function Home() {
     }
   }
 
-  function handleWorkspaceKeyDown(event: KeyboardEvent<HTMLFieldSetElement>) {
-    if (
-      event.key === "Enter" &&
-      (event.metaKey || event.ctrlKey)
-    ) {
-      event.preventDefault();
-      void handleSubmit();
-    }
-  }
+  useCoreCommands({
+    isSending: pending,
+    onSend: () => {
+      const form = document.querySelector<HTMLFormElement>("#request-form");
+      form?.requestSubmit();
+    },
+    onFocusUrl: () => {
+      document.querySelector<HTMLInputElement>("#request-url")?.focus();
+    },
+    setMethod,
+  });
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,var(--color-muted),transparent_42%)] px-4 py-8 sm:px-8 sm:py-12">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div>
-            <p className="mb-2 font-mono text-xs tracking-[0.22em] text-muted-foreground uppercase">
-              Local-first REST client
-            </p>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              Verbose
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
-              Send an HTTP request and read the response without an account or cloud sync.
-            </p>
-          </div>
-          {pending ? (
-            <p
-              aria-live="polite"
-              className="font-mono text-sm text-muted-foreground"
-            >
-              Sending · {Math.round(elapsedMs)} ms
-            </p>
-          ) : null}
-        </header>
+    <KeyboardProvider>
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,var(--color-muted),transparent_42%)] px-4 py-8 sm:px-8 sm:py-12">
+        <div className="mx-auto max-w-6xl">
+          <header className="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+            <div>
+              <p className="mb-2 font-mono text-xs tracking-[0.22em] text-muted-foreground uppercase">
+                Local-first REST client
+              </p>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                Verbose
+              </h1>
+              <p className="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
+                Send an HTTP request and read the response without an account or
+                cloud sync.
+              </p>
+            </div>
+            {pending ? (
+              <p
+                aria-live="polite"
+                className="font-mono text-sm text-muted-foreground"
+              >
+                Sending · {Math.round(elapsedMs)} ms
+              </p>
+            ) : null}
+          </header>
 
-        <section
-          className="mb-5 rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur sm:p-5"
-          aria-busy={!hydrated}
-        >
-          <fieldset
-            className="min-w-0 border-0 p-0"
-            disabled={!hydrated}
-            onKeyDown={handleWorkspaceKeyDown}
+          <section
+            className="mb-5 rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur sm:p-5"
+            aria-busy={!hydrated}
           >
-            <RequestBar pending={pending} onSubmit={handleSubmit} />
-            <div className="mt-4 border-t pt-4">
-              <RequestBody />
-            </div>
-            <div className="mt-4 border-t pt-4">
-              <RequestTabs />
-            </div>
-          </fieldset>
-        </section>
+            <fieldset
+              className="min-w-0 border-0 p-0"
+              disabled={!hydrated}
+            >
+              <RequestBar pending={pending} onSubmit={handleSubmit} />
+              <div className="mt-4 border-t pt-4">
+                <RequestBody />
+              </div>
+              <div className="mt-4 border-t pt-4">
+                <RequestTabs />
+              </div>
+            </fieldset>
+          </section>
 
-        <ResponsePanel pending={pending} result={result} />
-      </div>
-    </main>
+          <ResponsePanel pending={pending} result={result} />
+        </div>
+      </main>
+    </KeyboardProvider>
   );
 }

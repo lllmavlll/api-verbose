@@ -1,4 +1,4 @@
-import type { HttpMethod } from "./types";
+import { HTTP_METHODS, type HttpMethod } from "./types";
 
 export const MAX_RELAY_RESPONSE_BYTES = 10 * 1024 * 1024;
 
@@ -14,15 +14,7 @@ export const RELAY_ERROR_STATUS = {
 
 export type RelayErrorCode = keyof typeof RELAY_ERROR_STATUS;
 
-export const RELAY_METHODS = new Set<HttpMethod>([
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-  "HEAD",
-  "OPTIONS",
-]);
+export const RELAY_METHODS = new Set<HttpMethod>(HTTP_METHODS);
 
 export type RelayRequest = {
   method: HttpMethod;
