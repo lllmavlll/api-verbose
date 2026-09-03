@@ -89,6 +89,11 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
         >
           {status}
         </span>
+        {result.via === "relay" ? (
+          <span className="rounded-full border bg-muted px-2 py-0.5 text-[11px] tracking-wide text-muted-foreground">
+            via relay
+          </span>
+        ) : null}
         <span aria-hidden className="text-muted-foreground">
           ·
         </span>

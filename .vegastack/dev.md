@@ -3,7 +3,7 @@
 This file is the project's handbook and its only process document: short directional bullets, not prose. Skills read the section they need. When reality disagrees with a line, fix the line; when a gotcha or repeated instruction surfaces, fold ONE line into the right section — never append a log. A section left as TODO because its machinery didn't exist yet: re-run dev-setup detection when the machinery appears.
 
 repo: dev-mahesh-peerxp/api-verbose · default branch main
-stack: Next.js + TypeScript (Tailwind, shadcn/ui components, Zustand, CodeMirror 6, Dexie/IndexedDB); the CORS relay is a Next.js Route Handler, no separate service. The `## Architecture` section carries the rest
+stack: Next.js + TypeScript on a Node-compatible runtime (Tailwind, shadcn/ui components, Zustand, CodeMirror 6, Dexie/IndexedDB); the CORS relay is a Node-runtime Next.js Route Handler in the same deployable, no separate service. The `## Architecture` section carries the rest
 commands: test `npm test` · build `npm run build` · dev `npm run dev`
 authority: SOW.md → this file → skill defaults
 
@@ -45,7 +45,7 @@ Line prefixes: `auto:` (agent just does it) · `ask:` (operator's word first) ·
 
 ## Environments
 
-- local dev: `npm run dev` (Next.js on :3000); the CORS relay is a Route Handler in the same app — no separate service to run
+- local dev: `npm run dev` (Next.js on :3000); the pinned-egress CORS relay is a Node-runtime Route Handler in the same app — no separate service to run
 - production demo: TODO — public demo deploy target not chosen yet (see Architecture: hosting)
 - Codex CLI present (cross-agent review enabled); SkillSpector not installed (not needed — skill-scan is none)
 - Secrets: none server-side by design (local-first, no accounts); the relay needs no secrets. Env NAMES, if any appear, go in `.env.example` — values never in this file.
@@ -63,7 +63,7 @@ Line prefixes: `auto:` (agent just does it) · `ask:` (operator's word first) ·
 Facts dev-architect reads before advising — knobs, not prose. Decisions with rationale go
 to the register, never here. The repo wins on drift; dev-architect proposes the one-line fix.
 
-hosting: cloudflare-workers-opennext   # VegaStack default for Next.js; the relay route handler runs in the same Worker. Confirm with dev-architect before first deploy.
+hosting: node-nextjs-single-deployable   # Provider remains TODO; the in-app relay requires Node DNS + HTTP(S) socket pinning. Confirm provider fit with dev-architect before first deploy.
 database: none          # local-first; IndexedDB (Dexie) in the browser, no server DB
 auth: none              # no accounts by design (SOW §02 non-goals)
 storage: none           # IndexedDB is browser-side, not server object storage
@@ -89,3 +89,4 @@ Dark execution ends and the operator decides when work would involve: a change o
 - UI components come from shadcn/ui — add via the shadcn CLI into `components/ui` and compose; only hand-roll when no primitive fits.
 - Non-goals in SOW §02 are firm (no accounts/cloud sync, no WebSocket/GraphQL/gRPC, no scripting sandbox). Environments and collection files are the only sanctioned fast-follows.
 - Local-first: no server-side persistence of user data; the relay route handler proxies, it never stores.
+- Relay egress: resolve every target/redirect, reject any private/loopback/link-local/CGNAT/metadata answer, then pin Node HTTP(S) to one approved address while retaining Host/SNI; never replace this with resolve-then-unpinned-fetch.

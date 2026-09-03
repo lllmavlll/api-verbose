@@ -2,7 +2,7 @@
 
 Verbose is a local-first REST client for the browser. Pick an HTTP method, enter an absolute HTTP or HTTPS URL, and send the request to see its status, elapsed time, response size, and body. JSON responses are formatted for readability; other responses are shown as raw text.
 
-This first walking skeleton sends directly from the browser. An endpoint that does not allow cross-origin browser requests will show a clear CORS error until the built-in relay lands in the next slice.
+Verbose sends directly from the browser first. If an idempotent request is blocked in the CORS/network path, it falls back through the in-app relay and labels the result `via relay`. Ambiguous `POST` and `PATCH` failures are never retried automatically, avoiding duplicate writes.
 
 ## Run locally
 
@@ -13,7 +13,11 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), enter a CORS-permitting endpoint such as `https://api.github.com/zen`, and select **Send**. You can also submit with <kbd>⌘</kbd>+<kbd>Enter</kbd> or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>.
+Open [http://localhost:3000](http://localhost:3000), enter an endpoint such as `https://api.github.com/zen`, and select **Send**. You can also submit with <kbd>⌘</kbd>+<kbd>Enter</kbd> or <kbd>Ctrl</kbd>+<kbd>Enter</kbd>.
+
+The relay is a Node-runtime Next.js Route Handler in this same app. It needs no separate service, account, persistence, or secrets. Self-host on a Node-compatible Next.js runtime: the relay relies on Node DNS and HTTP(S) connection controls to pin every request and redirect to the public address it validated while preserving the target hostname for Host/SNI.
+
+The relay fetches user-supplied URLs server-side, so its security perimeter is load-bearing. It rejects non-HTTP schemes and private, loopback, link-local, CGNAT, and cloud-metadata addresses; revalidates redirects; strips hop-by-hop headers; and enforces request timeout and response-size caps. Do not expose a deployment publicly until the shipping review has confirmed those guards on the chosen Node host.
 
 ## Verify
 

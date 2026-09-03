@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -23,7 +23,7 @@ it("offers every supported method and submits a non-default choice", async () =>
   const user = userEvent.setup();
   render(<RequestBar pending={false} onSubmit={onSubmit} />);
 
-  await user.click(screen.getByRole("combobox", { name: /http method/i }));
+  fireEvent.click(screen.getByRole("combobox", { name: /http method/i }));
   for (const method of [
     "GET",
     "POST",

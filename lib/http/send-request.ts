@@ -1,9 +1,13 @@
 import type { RequestSpec, SendResult } from "./types";
+import { relayFetch } from "./relay-client";
 import { isAbsoluteHttpUrl } from "./url";
 
 const INVALID_URL_MESSAGE = "Enter a valid absolute HTTP or HTTPS URL.";
-const NETWORK_ERROR_MESSAGE =
-  "Request failed — the endpoint may block CORS; the relay is coming soon.";
+const NETWORK_ERROR_MESSAGE = "The request failed before a response arrived.";
+const AMBIGUOUS_WRITE_MESSAGE =
+  "The direct request failed, but it was not retried because doing so could duplicate a write.";
+
+const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]);
 
 const STATUS_MEANINGS: Readonly<Record<number, string>> = {
   100: "Continue",
@@ -105,29 +109,49 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
   }
 
   const startedAt = performance.now();
+  let response: Response;
 
   try {
-    const response = await fetch(spec.url, { method: spec.method });
-    const timeMs = performance.now() - startedAt;
-    const bodyText = await response.text();
+    response = await fetch(spec.url, { method: spec.method });
+  } catch (error) {
+    if (!(error instanceof TypeError)) {
+      return { ok: false, kind: "network", message: NETWORK_ERROR_MESSAGE };
+    }
+
+    if (!IDEMPOTENT_METHODS.has(spec.method)) {
+      return { ok: false, kind: "network", message: AMBIGUOUS_WRITE_MESSAGE };
+    }
+
+    const relayed = await relayFetch({ method: spec.method, url: spec.url });
+    if (!relayed.ok) {
+      return { ok: false, kind: "network", message: relayed.message };
+    }
+
+    const contentType =
+      relayed.headers.find(([name]) => name.toLowerCase() === "content-type")?.[1] ??
+      "";
+    const contentLength =
+      relayed.headers.find(([name]) => name.toLowerCase() === "content-length")?.[1] ??
+      null;
 
     return {
       ok: true,
-      status: response.status,
+      via: "relay",
+      status: relayed.status,
       statusText:
-        response.statusText || STATUS_MEANINGS[response.status] || "Unknown Status",
-      timeMs,
-      sizeBytes: responseSize(
-        bodyText,
-        response.headers.get("content-length"),
-      ),
-      bodyText,
-      isJson: bodyLooksLikeJson(
-        bodyText,
-        response.headers.get("content-type") ?? "",
-      ),
-      headers: Array.from(response.headers.entries()),
+        relayed.statusText || STATUS_MEANINGS[relayed.status] || "Unknown Status",
+      timeMs: performance.now() - startedAt,
+      sizeBytes: responseSize(relayed.bodyText, contentLength),
+      bodyText: relayed.bodyText,
+      isJson: bodyLooksLikeJson(relayed.bodyText, contentType),
+      headers: relayed.headers,
     };
+  }
+
+  const timeMs = performance.now() - startedAt;
+  let bodyText: string;
+  try {
+    bodyText = await response.text();
   } catch {
     return {
       ok: false,
@@ -135,4 +159,20 @@ export async function sendRequest(spec: RequestSpec): Promise<SendResult> {
       message: NETWORK_ERROR_MESSAGE,
     };
   }
+
+  return {
+    ok: true,
+    via: "direct",
+    status: response.status,
+    statusText:
+      response.statusText || STATUS_MEANINGS[response.status] || "Unknown Status",
+    timeMs,
+    sizeBytes: responseSize(bodyText, response.headers.get("content-length")),
+    bodyText,
+    isJson: bodyLooksLikeJson(
+      bodyText,
+      response.headers.get("content-type") ?? "",
+    ),
+    headers: Array.from(response.headers.entries()),
+  };
 }

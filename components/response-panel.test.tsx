@@ -9,6 +9,7 @@ it("renders a status line and pretty JSON on success", () => {
       pending={false}
       result={{
         ok: true,
+        via: "direct",
         status: 200,
         statusText: "OK",
         timeMs: 128,
@@ -48,4 +49,37 @@ it("renders distinct idle and loading states", () => {
 
   rerender(<ResponsePanel pending result={null} />);
   expect(screen.getByText(/waiting for a response/i)).toBeInTheDocument();
+});
+
+const success = {
+  ok: true as const,
+  status: 200,
+  statusText: "OK",
+  timeMs: 12,
+  sizeBytes: 7,
+  bodyText: '{"a":1}',
+  isJson: true,
+  headers: [] as [string, string][],
+};
+
+it("shows a via relay indicator for a relay-served response", () => {
+  render(
+    <ResponsePanel
+      pending={false}
+      result={{ ...success, via: "relay" }}
+    />,
+  );
+
+  expect(screen.getByText(/via relay/i)).toBeInTheDocument();
+});
+
+it("does not show a relay indicator for a direct response", () => {
+  render(
+    <ResponsePanel
+      pending={false}
+      result={{ ...success, via: "direct" }}
+    />,
+  );
+
+  expect(screen.queryByText(/via relay/i)).not.toBeInTheDocument();
 });

@@ -42,6 +42,7 @@ export interface RequestSpec {
 
 export type SendSuccess = {
   ok: true;
+  via: "direct" | "relay";
   status: number;
   statusText: string;
   timeMs: number;

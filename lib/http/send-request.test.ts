@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import * as relayClient from "./relay-client";
 import { sendRequest } from "./send-request";
 import type { HttpMethod, RequestSpec } from "./types";
 
@@ -63,6 +64,7 @@ describe("sendRequest", () => {
       status: 200,
       isJson: true,
       bodyText: '{"a":1}',
+      via: "direct",
     });
     if (result.ok) {
       expect(result.timeMs).toBeGreaterThanOrEqual(0);
@@ -93,6 +95,7 @@ describe("sendRequest", () => {
       status: 404,
       isJson: false,
       bodyText: "nope",
+      via: "direct",
     });
   });
 
@@ -120,17 +123,128 @@ describe("sendRequest", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("maps a fetch rejection to a network failure", async () => {
+  it("falls back through the relay after an idempotent TypeError rejection", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => {
         throw new TypeError("Failed to fetch");
       }),
     );
+    const relaySpy = vi.spyOn(relayClient, "relayFetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: [["content-type", "application/json"]],
+      bodyText: '{"relayed":true}',
+    });
+
+    const result = await sendRequest(spec("GET", "https://api.test/x"));
+
+    expect(relaySpy).toHaveBeenCalledWith({
+      method: "GET",
+      url: "https://api.test/x",
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      status: 200,
+      isJson: true,
+      bodyText: '{"relayed":true}',
+      via: "relay",
+    });
+  });
+
+  it.each(["POST", "PATCH"] as const)(
+    "does not silently re-fire an ambiguous %s rejection",
+    async (method) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => {
+          throw new TypeError("Failed to fetch");
+        }),
+      );
+      const relaySpy = vi.spyOn(relayClient, "relayFetch");
+
+      const result = await sendRequest(spec(method, "https://api.test/x"));
+
+      expect(result).toMatchObject({
+        ok: false,
+        kind: "network",
+        message: expect.stringMatching(/not retried|duplicate/i),
+      });
+      expect(relaySpy).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not relay a non-TypeError direct failure", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("application failure");
+      }),
+    );
+    const relaySpy = vi.spyOn(relayClient, "relayFetch");
 
     const result = await sendRequest(spec("GET", "https://api.test/x"));
 
     expect(result).toMatchObject({ ok: false, kind: "network" });
+    expect(relaySpy).not.toHaveBeenCalled();
+  });
+
+  it("maps a named relay failure to the existing network error state", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    vi.spyOn(relayClient, "relayFetch").mockResolvedValue({
+      ok: false,
+      error: "blocked-address",
+      message: "Blocked: target address is not allowed.",
+    });
+
+    const result = await sendRequest(spec("DELETE", "https://api.test/x"));
+
+    expect(result).toEqual({
+      ok: false,
+      kind: "network",
+      message: "Blocked: target address is not allowed.",
+    });
+  });
+
+  it("never relays a direct non-2xx response that arrived", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("nope", { status: 503 })),
+    );
+    const relaySpy = vi.spyOn(relayClient, "relayFetch");
+
+    const result = await sendRequest(spec("GET", "https://api.test/x"));
+
+    expect(result).toMatchObject({ ok: true, status: 503, via: "direct" });
+    expect(relaySpy).not.toHaveBeenCalled();
+  });
+
+  it("does not relay when a received response body fails to decode", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        ({
+          status: 200,
+          statusText: "OK",
+          headers: new Headers(),
+          text: async () => {
+            throw new TypeError("body stream failed");
+          },
+        }) as unknown as Response,
+      ),
+    );
+    const relaySpy = vi.spyOn(relayClient, "relayFetch");
+
+    const result = await sendRequest(spec("GET", "https://api.test/x"));
+
+    expect(result).toMatchObject({ ok: false, kind: "network" });
+    expect(relaySpy).not.toHaveBeenCalled();
   });
 
   it("prefers a valid Content-Length header for response size", async () => {

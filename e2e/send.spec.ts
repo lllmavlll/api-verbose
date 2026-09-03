@@ -51,7 +51,7 @@ test("send a request and see success and failure responses", async ({ page }) =>
   await urlInput.fill("https://api.test/failure");
   await page.getByRole("button", { name: /^send$/i }).click();
 
-  await expect(page.getByText(/endpoint may block CORS/i)).toBeVisible();
+  await expect(page.getByText(/upstream server could not be reached/i)).toBeVisible();
 
   if (process.env.EVIDENCE_DIR) {
     await page.screenshot({
