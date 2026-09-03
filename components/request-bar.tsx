@@ -12,20 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { METHOD_COLOR_CLASS } from "@/lib/http/method-colors";
 import { HTTP_METHODS, type HttpMethod } from "@/lib/http/types";
 import { isAbsoluteHttpUrl } from "@/lib/http/url";
 import { useRequestStore } from "@/lib/store/request-store";
 import { cn } from "@/lib/utils";
-
-const METHOD_COLORS: Record<HttpMethod, string> = {
-  GET: "text-method-get",
-  POST: "text-method-post",
-  PUT: "text-method-put",
-  PATCH: "text-method-patch",
-  DELETE: "text-method-delete",
-  HEAD: "text-method-head",
-  OPTIONS: "text-method-options",
-};
 
 type RequestBarProps = {
   pending: boolean;
@@ -96,14 +87,17 @@ export function RequestBar({ pending, onSubmit }: RequestBarProps) {
           <SelectTrigger
             id="request-method"
             aria-label="HTTP method"
-            className={cn("h-10 w-full font-mono sm:w-32", METHOD_COLORS[method])}
+            className={cn(
+              "h-10 w-full font-mono sm:w-32",
+              METHOD_COLOR_CLASS[method],
+            )}
           >
             <SelectValue />
           </SelectTrigger>
           <SelectContent align="start">
             {HTTP_METHODS.map((item) => (
               <SelectItem
-                className={cn("font-mono", METHOD_COLORS[item])}
+                className={cn("font-mono", METHOD_COLOR_CLASS[item])}
                 key={item}
                 value={item}
               >

@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Recent requests now survive a reload without saving secrets ([#8](https://github.com/dev-mahesh-peerxp/api-verbose/issues/8))
+
+- **What:** Every resolved send now appears in a browser-local, searchable history that survives reloads and stays bounded at 500 entries. A developer can replay the method and URL without auto-sending, navigate recent requests from the URL field, export the log as JSON, or clear it after confirmation.
+- **Why:** Verbose needed automatic recall for everyday request iteration and one shared IndexedDB foundation for later saved-request and assertion features.
+- **How it went:** Implementation paused before the first code change because the original plan would have persisted the richer request model after headers, bodies, and credentials landed. The operator approved a replay-safe correction, so the shared Dexie foundation remained while automatic history was narrowed to method and URL plus non-sensitive result metadata.
+- **Changed:** reload-surviving request history · newest-first method/URL search · replay that clears stale sensitive fields · URL-field arrow navigation · 500-entry cap · confirmed clear · JSON export · non-crashing storage-unavailable notice · deterministic browser coverage
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/8-local-persistence-history
+
 ## 03-09-2026 — Response metadata is now readable at a glance ([#7](https://github.com/dev-mahesh-peerxp/api-verbose/issues/7))
 
 - **What:** Successful responses now include counted Headers and Cookies views alongside the body. Headers are sorted into a monospace name/value table, and visible Set-Cookie values become structured rows with their common attributes and flags.

@@ -177,9 +177,10 @@ test("a real redirected fetch shows its start and final URL", async ({ page }) =
   try {
     await page.goto("/");
     await send(page, startUrl);
-    await expect(page.getByText("Redirect chain")).toBeVisible();
-    await expect(page.getByText(startUrl)).toBeVisible();
-    await expect(page.getByText(finalUrl)).toBeVisible();
+    const redirectChain = page.getByRole("region", { name: "Redirect chain" });
+    await expect(redirectChain).toBeVisible();
+    await expect(redirectChain.getByText(startUrl)).toBeVisible();
+    await expect(redirectChain.getByText(finalUrl)).toBeVisible();
     await expect(page.getByText("200 OK")).toBeVisible();
     await expect(page.locator("pre.shiki")).toBeVisible({ timeout: 15_000 });
     await screenshot(page, "render-redirect-chain.png");

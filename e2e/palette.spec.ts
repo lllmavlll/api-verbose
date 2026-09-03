@@ -101,7 +101,9 @@ test("builds and sends a request by keyboard alone", async ({ page }) => {
 
   await page.keyboard.press("ControlOrMeta+Enter");
 
-  await expect(page.getByText(/201/)).toBeVisible();
+  await expect(
+    page.locator("[aria-live='polite']").filter({ hasText: "201 Created" }),
+  ).toBeVisible();
   await expect(page.locator("pre.shiki")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/"created": true/)).toBeVisible();
   expect(receivedRequest).toMatchObject({

@@ -34,8 +34,6 @@ Open [http://localhost:3000](http://localhost:3000), enter an endpoint such as `
 | Show active shortcuts | <kbd>?</kbd> | <kbd>?</kbd> |
 | Recall history while URL is focused | <kbd>↑</kbd> / <kbd>↓</kbd> | <kbd>↑</kbd> / <kbd>↓</kbd> |
 
-History navigation becomes active when the request-history feature registers its commands; until then, the arrow keys keep their native behavior.
-
 The relay is a Node-runtime Next.js Route Handler in this same app. It needs no separate service, account, persistence, or secrets. Self-host on a Node-compatible Next.js runtime: the relay relies on Node DNS and HTTP(S) connection controls to pin every request and redirect to the public address it validated while preserving the target hostname for Host/SNI.
 
 The relay fetches user-supplied URLs server-side, so its security perimeter is load-bearing. It rejects non-HTTP schemes and private, loopback, link-local, CGNAT, and cloud-metadata addresses; revalidates redirects; strips hop-by-hop headers; and enforces request timeout and response-size caps. Do not expose a deployment publicly until the shipping review has confirmed those guards on the chosen Node host.
@@ -47,6 +45,12 @@ Duplicate header rows remain separate in the request model. On the direct browse
 The **Auth** panel can add a Bearer token, Basic credentials, or an API key sent as either a header or query parameter. Auth values remain in memory only and are not persisted. When an auth preset collides with a manual row, the preset wins and the overridden row is marked in the table.
 
 Use **Body** to keep separate in-session drafts for JSON, URL-encoded form fields, and raw text. JSON and raw bodies use the CodeMirror editor; malformed JSON is allowed and sent exactly as typed. Verbose supplies the matching `Content-Type` automatically unless an enabled header row already sets one. Bodies are sent only for `POST`, `PUT`, `PATCH`, and `DELETE`; other methods keep the draft visible and show that it will not be sent.
+
+## Request history
+
+Every resolved send is added to a browser-local history in IndexedDB, including failed attempts. History survives reloads, lists the newest request first, can be searched by method or URL, and is capped at 500 entries. Use **Replay** or the URL field's <kbd>↑</kbd>/<kbd>↓</kbd> shortcuts to restore a method and URL without sending automatically; replay clears any stale headers, auth, and body from the builder first. History can be exported as JSON or cleared after confirmation.
+
+Automatic history deliberately stores only method, URL, timestamp, and non-sensitive response metadata. It never stores credentials, arbitrary request headers, auth configuration, request bodies, or response bodies and headers. The data stays in this browser: there are no accounts, server-side persistence, or cloud sync.
 
 ## Import & copy-as-code
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { CopyAsCodeMenu } from "@/components/copy-as-code-menu";
+import { HistoryPanel } from "@/components/history-panel";
 import { ImportCurlDialog } from "@/components/import-curl-dialog";
 import { KeyboardProvider } from "@/components/keyboard-provider";
 import { RequestBar } from "@/components/request-bar";
@@ -10,6 +11,7 @@ import { RequestBody } from "@/components/request-body";
 import { RequestTabs } from "@/components/request-tabs";
 import { ResponsePanel } from "@/components/response-panel";
 import { useCoreCommands } from "@/components/use-core-commands";
+import { logSend } from "@/lib/db/log-send";
 import { sendRequest } from "@/lib/http/send-request";
 import type { SendResult } from "@/lib/http/types";
 import { composeRequest } from "@/lib/request/compose";
@@ -47,7 +49,8 @@ export default function Home() {
       return;
     }
 
-    const spec = composeRequest(useRequestStore.getState().spec);
+    const builderSpec = useRequestStore.getState().spec;
+    const wireSpec = composeRequest(builderSpec);
 
     pendingRef.current = true;
     startedAtRef.current = performance.now();
@@ -56,7 +59,10 @@ export default function Home() {
     setPending(true);
 
     try {
-      setResult(await sendRequest(spec));
+      const nextResult = await sendRequest(wireSpec);
+      const measuredTimeMs = performance.now() - startedAtRef.current;
+      setResult(nextResult);
+      void logSend(builderSpec, nextResult, measuredTimeMs);
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -129,6 +135,7 @@ export default function Home() {
           </section>
 
           <ResponsePanel pending={pending} result={result} />
+          <HistoryPanel />
         </div>
       </main>
     </KeyboardProvider>
