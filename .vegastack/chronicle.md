@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Each response can prove the checks that matter ([#11](https://github.com/dev-mahesh-peerxp/api-verbose/issues/11))
+
+- **What:** A developer can add status, JSONPath, and response-time rules in a dedicated Tests tab and see them run automatically against each completed response. The panel keeps rule order, explains actual versus expected failures, and turns invalid paths, non-JSON bodies, and failed sends into readable states instead of crashes.
+- **Why:** Verbose needed lightweight, repeatable response checks without adding the scripting sandbox that the product deliberately excludes.
+- **How it went:** The response seam exposed an encoded body union rather than the plan's convenience field, so the panel maps UTF-8 bodies into the pure evaluator and treats binary bodies as non-JSON. History provided stable request IDs for isolated replay snapshots; when the saved-request sibling landed before shipping, one final reconciliation advanced the shared Dexie schema and made explicit saves restore those same rule sets without duplicating storage.
+- **Changed:** declarative status / JSONPath / response-time editor · automatic ordered pass/fail results · actual-versus-expected diagnostics · no-crash JSONPath errors · explicit not-run state · rule persistence across history replay and saved-request reopen · deterministic browser coverage
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/11-response-assertions-tests-panel
+
 ## 03-09-2026 — Complete requests can now live in local collections ([#9](https://github.com/dev-mahesh-peerxp/api-verbose/issues/9))
 
 - **What:** A developer can explicitly name the complete request in the workbench, keep it Ungrouped or in a one-level collection, and open it later without sending. Saved requests and even empty collections survive reloads, with rename, move, and safe collection-delete choices available from the sidebar.

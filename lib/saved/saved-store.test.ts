@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { db } from "@/lib/db/db";
+import { db, getRulesFor, putRule } from "@/lib/db/db";
 import type { RequestSpec } from "@/lib/http/types";
 
 import {
@@ -30,6 +30,7 @@ const spec: RequestSpec = {
 beforeEach(async () => {
   await db.savedRequests.clear();
   await db.collections.clear();
+  await db.assertions.clear();
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -151,17 +152,33 @@ describe("saved request store", () => {
     const collectionId = collection.ok ? collection.value.id : "";
     const saved = await saveRequest({ name: "gone", collectionId, spec });
     const savedId = saved.ok ? saved.value.id : "";
+    await putRule({
+      id: "collection-rule",
+      requestRef: savedId,
+      kind: "status",
+      operator: "==",
+      expected: "200",
+    });
 
     expect((await deleteCollection(collectionId, "cascade")).ok).toBe(true);
     expect(await db.savedRequests.get(savedId)).toBeUndefined();
+    expect(await getRulesFor(savedId)).toEqual([]);
   });
 
   it("deletes a saved row", async () => {
     const saved = await saveRequest({ name: "delete", collectionId: null, spec });
     const savedId = saved.ok ? saved.value.id : "";
+    await putRule({
+      id: "saved-rule",
+      requestRef: savedId,
+      kind: "status",
+      operator: "==",
+      expected: "200",
+    });
 
     expect((await deleteSaved(savedId)).ok).toBe(true);
     expect(await db.savedRequests.get(savedId)).toBeUndefined();
+    expect(await getRulesFor(savedId)).toEqual([]);
   });
 
   it("surfaces rejected writes as typed failures", async () => {

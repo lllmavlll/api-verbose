@@ -15,6 +15,8 @@ The interface follows the browser's light or dark OS preference on first visit. 
 
 Every successful response also exposes counted **Headers** and **Cookies** tabs. Headers are sorted into a monospace name/value table, while visible `Set-Cookie` values are parsed into cookie attributes; browsers may hide those cookie headers on direct requests, so the empty state points to the relay path.
 
+- **Tests** attaches per-request status, JSONPath, and response-time rules that auto-run after each completed send, with a compact pass/fail panel. Rule edits stay in browser-local IndexedDB, malformed or unmatched JSONPath expressions become readable failures, and a request that does not complete is clearly marked as not run.
+
 Screenshots: [Pretty (dark)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-dark.png) · [Pretty (light)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-light.png) · [Raw](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-raw.png) · [sandboxed HTML Preview](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-preview-html.png) · [redirect chain](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-redirect-chain.png)
 
 ## Run locally
@@ -52,11 +54,11 @@ Use **Body** to keep separate in-session drafts for JSON, URL-encoded form field
 
 Every resolved send is added to a browser-local history in IndexedDB, including failed attempts. History survives reloads, lists the newest request first, can be searched by method or URL, and is capped at 500 entries. Use **Replay** or the URL field's <kbd>↑</kbd>/<kbd>↓</kbd> shortcuts to restore a method and URL without sending automatically; replay clears any stale headers, auth, and body from the builder first. History can be exported as JSON or cleared after confirmation.
 
-Automatic history deliberately stores only method, URL, timestamp, and non-sensitive response metadata. It never stores credentials, arbitrary request headers, auth configuration, request bodies, or response bodies and headers. The data stays in this browser: there are no accounts, server-side persistence, or cloud sync.
+Automatic history deliberately stores only method, URL, timestamp, non-sensitive response metadata, and the assertion rules attached to that request. It never stores credentials, arbitrary request headers, auth configuration, request bodies, or response bodies and headers. Assertion expected values are user-authored and persist with the history entry so replay restores its checks. The data stays in this browser: there are no accounts, server-side persistence, or cloud sync.
 
 ## Saved requests and collections
 
-Use **Save request** to give the complete request currently in the builder a name and store it explicitly in this browser. The snapshot includes its method, URL, query parameters, headers, auth values, and body, but never its response. Saved names do not need to be unique; method and URL remain visible so similarly named requests stay distinguishable.
+Use **Save request** to give the complete request currently in the builder a name and store it explicitly in this browser. The snapshot includes its method, URL, query parameters, headers, auth values, body, and assertion rules, but never its response. Saved names do not need to be unique; method and URL remain visible so similarly named requests stay distinguishable.
 
 Saved requests can stay **Ungrouped** or live in one-level local collections. Open a row to replace the current builder without sending, or use its actions to rename, move, or delete it. Empty collections persist, and deleting a collection moves its requests to Ungrouped by default unless you explicitly choose the cascade-delete action.
 

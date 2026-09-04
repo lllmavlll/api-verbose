@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KeyboardProvider } from "@/components/keyboard-provider";
 import { RequestBar } from "@/components/request-bar";
 import { clearCommands } from "@/lib/commands";
-import { db } from "@/lib/db/db";
+import { db, putRule } from "@/lib/db/db";
 import { addEntry } from "@/lib/db/history";
 import { logSend } from "@/lib/db/log-send";
 import {
@@ -15,9 +15,12 @@ import {
   resetHistoryStorageStatus,
 } from "@/lib/db/storage-status";
 import type { RequestSpec, SendResult } from "@/lib/http/types";
+import { useAssertionsStore } from "@/lib/store/assertions-store";
 import { useRequestStore } from "@/lib/store/request-store";
 
 import { HistoryPanel } from "./history-panel";
+
+const realLoadRules = useAssertionsStore.getState().loadRules;
 
 const spec = (url: string, method: RequestSpec["method"] = "GET"): RequestSpec => ({
   method,
@@ -44,6 +47,12 @@ beforeEach(async () => {
   clearCommands();
   useRequestStore.getState().reset();
   await db.history.clear();
+  await db.assertions.clear();
+  useAssertionsStore.setState({
+    requestRef: "draft",
+    rules: [],
+    loadRules: realLoadRules,
+  });
   resetHistoryStorageStatus();
 });
 
@@ -89,6 +98,83 @@ describe("HistoryPanel", () => {
       params: [],
       auth: { kind: "none" },
       body: { kind: "none" },
+    });
+  });
+
+  it("replay restores only the assertion rules attached to that request", async () => {
+    const user = userEvent.setup();
+    const first = await addEntry(spec("https://a.test/first"), ok, 1_000);
+    const second = await addEntry(spec("https://a.test/second"), ok, 2_000);
+    await putRule({
+      id: "first-rule",
+      requestRef: first.id,
+      kind: "status",
+      operator: "==",
+      expected: "200",
+    });
+    await putRule({
+      id: "second-rule",
+      requestRef: second.id,
+      kind: "status",
+      operator: "==",
+      expected: "201",
+    });
+
+    render(<HistoryPanel />);
+    await user.click(
+      await screen.findByRole("button", {
+        name: /replay get https:\/\/a\.test\/first/i,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(useAssertionsStore.getState()).toMatchObject({
+        requestRef: first.id,
+        rules: [expect.objectContaining({ id: "first-rule", expected: "200" })],
+      }),
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: /replay get https:\/\/a\.test\/second/i,
+      }),
+    );
+    await waitFor(() =>
+      expect(useAssertionsStore.getState()).toMatchObject({
+        requestRef: second.id,
+        rules: [expect.objectContaining({ id: "second-rule", expected: "201" })],
+      }),
+    );
+  });
+
+  it("keeps the current request and rules when replay persistence is unavailable", async () => {
+    const user = userEvent.setup();
+    await addEntry(spec("https://a.test/replay"), ok, 1_000);
+    const current = spec("https://a.test/current", "PATCH");
+    const currentRule = {
+      id: "current-rule",
+      requestRef: "current",
+      kind: "status" as const,
+      operator: "==" as const,
+      expected: "200",
+    };
+    useRequestStore.getState().loadSpec(current);
+    useAssertionsStore.setState({
+      requestRef: "current",
+      rules: [currentRule],
+      loadRules: vi.fn().mockRejectedValue(new Error("storage unavailable")),
+    });
+
+    render(<HistoryPanel />);
+    await user.click(await screen.findByRole("button", { name: /replay get/i }));
+    await waitFor(() =>
+      expect(getHistoryStorageStatus().readUnavailable).toBe(true),
+    );
+
+    expect(useRequestStore.getState().spec).toEqual(current);
+    expect(useAssertionsStore.getState()).toMatchObject({
+      requestRef: "current",
+      rules: [currentRule],
     });
   });
 
@@ -178,7 +264,7 @@ describe("HistoryPanel", () => {
       throw new DOMException("IndexedDB blocked", "SecurityError");
     });
 
-    await expect(logSend(spec("https://a.test/write"), ok, ok.timeMs)).resolves.toBeUndefined();
+    await expect(logSend(spec("https://a.test/write"), ok, ok.timeMs)).resolves.toBeNull();
     expect(getHistoryStorageStatus().writeUnavailable).toBe(true);
 
     open.mockRestore();

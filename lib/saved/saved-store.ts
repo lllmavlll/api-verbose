@@ -135,7 +135,10 @@ export async function moveSaved(
 
 export async function deleteSaved(id: string): Promise<SavedResult<void>> {
   try {
-    await db.savedRequests.delete(id);
+    await db.transaction("rw", db.savedRequests, db.assertions, async () => {
+      await db.savedRequests.delete(id);
+      await db.assertions.where("requestRef").equals(id).delete();
+    });
     return { ok: true, value: undefined };
   } catch {
     return persistFailed();
@@ -147,15 +150,25 @@ export async function deleteCollection(
   mode: "reassign" | "cascade",
 ): Promise<SavedResult<void>> {
   try {
-    await db.transaction("rw", db.collections, db.savedRequests, async () => {
-      const requests = db.savedRequests.where("collectionId").equals(id);
-      if (mode === "cascade") {
-        await requests.delete();
-      } else {
-        await requests.modify({ collectionId: null });
-      }
-      await db.collections.delete(id);
-    });
+    await db.transaction(
+      "rw",
+      db.collections,
+      db.savedRequests,
+      db.assertions,
+      async () => {
+        const requests = db.savedRequests.where("collectionId").equals(id);
+        if (mode === "cascade") {
+          const requestRefs = await requests.primaryKeys();
+          await requests.delete();
+          if (requestRefs.length > 0) {
+            await db.assertions.where("requestRef").anyOf(requestRefs).delete();
+          }
+        } else {
+          await requests.modify({ collectionId: null });
+        }
+        await db.collections.delete(id);
+      },
+    );
     return { ok: true, value: undefined };
   } catch {
     return persistFailed();

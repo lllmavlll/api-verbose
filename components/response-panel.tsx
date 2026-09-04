@@ -1,8 +1,11 @@
+"use client";
+
 import { AlertCircle, ArrowRight, LoaderCircle } from "lucide-react";
 
 import { ResponseBody } from "@/components/response-body";
 import { ResponseCookiesTable } from "@/components/response-cookies-table";
 import { ResponseHeadersTable } from "@/components/response-headers-table";
+import { TestsPanel, testsBadgeCount } from "@/components/tests-panel";
 import {
   Alert,
   AlertDescription,
@@ -19,6 +22,7 @@ import {
 import { cookiesFromHeaders } from "@/lib/http/parse-set-cookie";
 import type { SendResult } from "@/lib/http/types";
 import { contentTypeOf, formatSize } from "@/lib/render/meta";
+import { useAssertionsStore } from "@/lib/store/assertions-store";
 
 type ResponsePanelProps = {
   result: SendResult | null;
@@ -26,6 +30,8 @@ type ResponsePanelProps = {
 };
 
 export function ResponsePanel({ result, pending }: ResponsePanelProps) {
+  const ruleCount = useAssertionsStore((state) => testsBadgeCount(state.rules));
+
   if (pending) {
     return (
       <Card
@@ -41,88 +47,62 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
     );
   }
 
-  if (!result) {
-    return (
-      <Card className="grid min-h-80 place-items-center border border-dashed shadow-none ring-0">
-        <div className="max-w-sm text-center">
-          <ArrowRight
-            aria-hidden
-            className="mx-auto mb-3 size-5 text-muted-foreground"
-          />
-          <p className="font-medium">Send a request to see its response</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Status, timing, size, and body will appear here.
-          </p>
-        </div>
-      </Card>
-    );
-  }
-
-  if (!result.ok) {
-    return (
-      <Card className="min-h-80 border border-destructive/30 bg-destructive/5 shadow-none ring-0">
-        <CardContent>
-          <Alert aria-live="polite" className="border-destructive/30" variant="destructive">
-            <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0" />
-            <AlertTitle>Unable to send request</AlertTitle>
-            <AlertDescription>{result.message}</AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const status = [result.status, result.statusText].filter(Boolean).join(" ");
-  const contentType = contentTypeOf(result.headers);
-  const contentEncoding = result.headers.find(
+  const success = result?.ok ? result : null;
+  const status = success
+    ? [success.status, success.statusText].filter(Boolean).join(" ")
+    : "";
+  const contentType = success ? contentTypeOf(success.headers) : null;
+  const contentEncoding = success?.headers.find(
     ([name]) => name.toLowerCase() === "content-encoding",
   )?.[1];
-  const cookieCount = cookiesFromHeaders(result.headers).length;
+  const cookieCount = success ? cookiesFromHeaders(success.headers).length : 0;
 
   return (
     <Card
       aria-live="polite"
       className="min-h-80 gap-0 border py-0 shadow-none ring-0"
     >
-      <CardHeader className="flex flex-row flex-wrap items-center gap-2 rounded-none border-b py-3 font-mono text-sm">
-        <Badge
-          className={result.status < 400 ? "text-status-success" : undefined}
-          variant={result.status < 400 ? "outline" : "destructive"}
-        >
-          {status}
-        </Badge>
-        {result.via === "relay" ? (
+      {success ? (
+        <CardHeader className="flex flex-row flex-wrap items-center gap-2 rounded-none border-b py-3 font-mono text-sm">
           <Badge
-            className="bg-muted text-[11px] tracking-wide text-muted-foreground"
-            variant="outline"
+            className={success.status < 400 ? "text-status-success" : undefined}
+            variant={success.status < 400 ? "outline" : "destructive"}
           >
-            via relay
+            {status}
           </Badge>
-        ) : null}
-        <span aria-hidden className="text-muted-foreground">
-          ·
-        </span>
-        <span>{Math.round(result.timeMs)} ms</span>
-        <span aria-hidden className="text-muted-foreground">
-          ·
-        </span>
-        <span>{formatSize(result.sizeBytes)}</span>
-        <span aria-hidden className="text-muted-foreground">
-          ·
-        </span>
-        <span className="text-muted-foreground">
-          {contentType ?? "content type unavailable"}
-        </span>
-        {contentEncoding ? (
-          <>
-            <span aria-hidden className="text-muted-foreground">
-              ·
-            </span>
-            <span className="text-muted-foreground">{contentEncoding}</span>
-          </>
-        ) : null}
-      </CardHeader>
-      {result.redirects?.length ? (
+          {success.via === "relay" ? (
+            <Badge
+              className="bg-muted text-[11px] tracking-wide text-muted-foreground"
+              variant="outline"
+            >
+              via relay
+            </Badge>
+          ) : null}
+          <span aria-hidden className="text-muted-foreground">
+            ·
+          </span>
+          <span>{Math.round(success.timeMs)} ms</span>
+          <span aria-hidden className="text-muted-foreground">
+            ·
+          </span>
+          <span>{formatSize(success.sizeBytes)}</span>
+          <span aria-hidden className="text-muted-foreground">
+            ·
+          </span>
+          <span className="text-muted-foreground">
+            {contentType ?? "content type unavailable"}
+          </span>
+          {contentEncoding ? (
+            <>
+              <span aria-hidden className="text-muted-foreground">
+                ·
+              </span>
+              <span className="text-muted-foreground">{contentEncoding}</span>
+            </>
+          ) : null}
+        </CardHeader>
+      ) : null}
+      {success?.redirects?.length ? (
         <section
           aria-label="Redirect chain"
           className="border-b bg-muted/35 px-4 py-3"
@@ -131,7 +111,7 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
             Redirect chain
           </p>
           <ol className="space-y-1.5 font-mono text-xs">
-            {result.redirects.map((hop, index) => (
+            {success.redirects.map((hop, index) => (
               <li className="flex min-w-0 items-center gap-2" key={`${hop.url}-${index}`}>
                 {hop.status === 0 ? (
                   <span className="shrink-0 text-muted-foreground">
@@ -159,19 +139,57 @@ export function ResponsePanel({ result, pending }: ResponsePanelProps) {
             variant="line"
           >
             <TabsTrigger value="body">Body</TabsTrigger>
-            <TabsTrigger value="headers">
-              Headers {result.headers.length}
+            <TabsTrigger disabled={!success} value="headers">
+              Headers {success?.headers.length ?? 0}
             </TabsTrigger>
-            <TabsTrigger value="cookies">Cookies {cookieCount}</TabsTrigger>
+            <TabsTrigger disabled={!success} value="cookies">
+              Cookies {cookieCount}
+            </TabsTrigger>
+            <TabsTrigger aria-label={`Tests ${ruleCount}`} value="tests">
+              Tests
+              <Badge className="font-mono" variant="outline">
+                {ruleCount}
+              </Badge>
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="body">
-            <ResponseBody result={result} />
+            {!result ? (
+              <div className="grid min-h-64 place-items-center px-4 py-8">
+                <div className="max-w-sm text-center">
+                  <ArrowRight
+                    aria-hidden
+                    className="mx-auto mb-3 size-5 text-muted-foreground"
+                  />
+                  <p className="font-medium">Send a request to see its response</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Status, timing, size, and body will appear here.
+                  </p>
+                </div>
+              </div>
+            ) : !result.ok ? (
+              <div className="px-4 pb-5 pt-3">
+                <Alert
+                  aria-live="polite"
+                  className="border-destructive/30"
+                  variant="destructive"
+                >
+                  <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0" />
+                  <AlertTitle>Unable to send request</AlertTitle>
+                  <AlertDescription>{result.message}</AlertDescription>
+                </Alert>
+              </div>
+            ) : (
+              <ResponseBody result={result} />
+            )}
           </TabsContent>
           <TabsContent className="pt-3" value="headers">
-            <ResponseHeadersTable headers={result.headers} />
+            <ResponseHeadersTable headers={success?.headers ?? []} />
           </TabsContent>
           <TabsContent className="pt-3" value="cookies">
-            <ResponseCookiesTable headers={result.headers} />
+            <ResponseCookiesTable headers={success?.headers ?? []} />
+          </TabsContent>
+          <TabsContent value="tests">
+            <TestsPanel result={result} />
           </TabsContent>
         </Tabs>
       </CardContent>

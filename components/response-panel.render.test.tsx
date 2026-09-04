@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
 
 import { ResponsePanel } from "./response-panel";
@@ -41,7 +41,11 @@ it("renders a redirect chain when hops are present", () => {
   expect(screen.getByText(/https:\/\/api\.test\/start/)).toBeInTheDocument();
   expect(screen.getByText(/https:\/\/api\.test\/final/)).toBeInTheDocument();
   expect(screen.getByText(/redirected from/i)).toBeInTheDocument();
-  expect(screen.queryByText(/^0$/)).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole("region", { name: "Redirect chain" })).queryByText(
+      /^0$/,
+    ),
+  ).not.toBeInTheDocument();
 });
 
 it("shows the walking-skeleton idle hint when there is no result", () => {

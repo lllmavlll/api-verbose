@@ -97,4 +97,31 @@ describe("SaveRequestDialog", () => {
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it("resets the suggested name each time the dialog opens", async () => {
+    const user = userEvent.setup();
+    const props = {
+      collections,
+      onCreateCollection: vi.fn(),
+      onOpenChange: vi.fn(),
+      onSave: vi.fn(),
+    };
+    const { rerender } = render(
+      <SaveRequestDialog {...props} defaultName="first" open />,
+    );
+
+    await user.clear(screen.getByRole("textbox", { name: /request name/i }));
+    await user.type(
+      screen.getByRole("textbox", { name: /request name/i }),
+      "edited",
+    );
+    rerender(
+      <SaveRequestDialog {...props} defaultName="second" open={false} />,
+    );
+    rerender(<SaveRequestDialog {...props} defaultName="second" open />);
+
+    expect(screen.getByRole("textbox", { name: /request name/i })).toHaveValue(
+      "second",
+    );
+  });
 });

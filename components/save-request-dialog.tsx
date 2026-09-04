@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,24 +34,16 @@ interface SaveRequestDialogProps {
   onOpenChange(open: boolean): void;
 }
 
-export function SaveRequestDialog({
-  open,
+function SaveRequestDialogContent({
   defaultName,
   collections,
   onSave,
   onCreateCollection,
   onOpenChange,
-}: SaveRequestDialogProps) {
+}: Omit<SaveRequestDialogProps, "open">) {
   const [name, setName] = useState(defaultName);
   const [collectionId, setCollectionId] = useState(UNGROUPED);
   const [newCollectionName, setNewCollectionName] = useState("");
-
-  useEffect(() => {
-    if (!open) return;
-    setName(defaultName);
-    setCollectionId(UNGROUPED);
-    setNewCollectionName("");
-  }, [defaultName, open]);
 
   const collectionLabel =
     collectionId === UNGROUPED
@@ -62,16 +54,15 @@ export function SaveRequestDialog({
           "Ungrouped");
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Save request</DialogTitle>
-          <DialogDescription>
-            Save this complete request definition to this browser.
-          </DialogDescription>
-        </DialogHeader>
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Save request</DialogTitle>
+        <DialogDescription>
+          Save this complete request definition to this browser.
+        </DialogDescription>
+      </DialogHeader>
 
-        <div className="space-y-4">
+      <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="saved-request-name">Request name</Label>
             <Input
@@ -143,9 +134,9 @@ export function SaveRequestDialog({
               </div>
             </div>
           ) : null}
-        </div>
+      </div>
 
-        <DialogFooter>
+      <DialogFooter>
           <Button
             onClick={() => onOpenChange(false)}
             type="button"
@@ -166,8 +157,30 @@ export function SaveRequestDialog({
           >
             Save
           </Button>
-        </DialogFooter>
-      </DialogContent>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
+export function SaveRequestDialog({
+  open,
+  defaultName,
+  collections,
+  onSave,
+  onCreateCollection,
+  onOpenChange,
+}: SaveRequestDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {open ? (
+        <SaveRequestDialogContent
+          collections={collections}
+          defaultName={defaultName}
+          onCreateCollection={onCreateCollection}
+          onOpenChange={onOpenChange}
+          onSave={onSave}
+        />
+      ) : null}
     </Dialog>
   );
 }

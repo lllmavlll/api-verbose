@@ -40,9 +40,10 @@ beforeEach(async () => {
 
 describe("logSend", () => {
   it("logs a resolved send as exactly one history entry", async () => {
-    await logSend(spec, ok, ok.timeMs);
+    const entry = await logSend(spec, ok, ok.timeMs);
 
     expect(await listHistory()).toHaveLength(1);
+    expect(entry).toMatchObject({ spec: { url: "https://a.test/x" } });
     expect(getHistoryStorageStatus().writeUnavailable).toBe(false);
   });
 
@@ -72,7 +73,7 @@ describe("logSend", () => {
       throw new DOMException("IndexedDB blocked", "SecurityError");
     });
 
-    await expect(logSend(spec, ok, ok.timeMs)).resolves.toBeUndefined();
+    await expect(logSend(spec, ok, ok.timeMs)).resolves.toBeNull();
     expect(getHistoryStorageStatus().writeUnavailable).toBe(true);
   });
 });

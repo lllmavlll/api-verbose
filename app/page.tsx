@@ -56,6 +56,7 @@ import {
   suggestName,
   toSavedSnapshot,
 } from "@/lib/saved/snapshot";
+import { useAssertionsStore } from "@/lib/store/assertions-store";
 import { useRequestStore } from "@/lib/store/request-store";
 
 const emptySavedGroups: SavedGroup[] = [{ collection: null, requests: [] }];
@@ -63,6 +64,8 @@ const emptySavedGroups: SavedGroup[] = [{ collection: null, requests: [] }];
 export default function Home() {
   const hydrated = useHydrated();
   const setMethod = useRequestStore((state) => state.setMethod);
+  const loadRules = useAssertionsStore((state) => state.loadRules);
+  const snapshotRules = useAssertionsStore((state) => state.snapshotRules);
   const [pending, setPending] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [result, setResult] = useState<SendResult | null>(null);
@@ -88,8 +91,18 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    void refreshSaved();
+    const timer = window.setTimeout(() => {
+      void refreshSaved();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [refreshSaved]);
+
+  useEffect(() => {
+    void loadRules("draft").catch(() => {
+      // Sending remains available when browser persistence is unavailable.
+    });
+  }, [loadRules]);
 
   useEffect(() => {
     if (!pending) {
@@ -121,7 +134,16 @@ export default function Home() {
       const nextResult = await sendRequest(wireSpec);
       const measuredTimeMs = performance.now() - startedAtRef.current;
       setResult(nextResult);
-      void logSend(builderSpec, nextResult, measuredTimeMs);
+      const historyEntry = await logSend(
+        builderSpec,
+        nextResult,
+        measuredTimeMs,
+      );
+      if (historyEntry) {
+        await snapshotRules(historyEntry.id).catch(() => {
+          // A response stays usable even if its assertion snapshot cannot persist.
+        });
+      }
     } finally {
       pendingRef.current = false;
       setPending(false);
@@ -148,14 +170,35 @@ export default function Home() {
     collectionId: string | null;
   }) {
     const spec = useRequestStore.getState().spec;
-    const saved = await applySavedMutation(
-      saveRequest({ ...input, spec: toSavedSnapshot(spec) }),
-    );
-    if (saved) setSaveOpen(false);
+    const saved = await saveRequest({ ...input, spec: toSavedSnapshot(spec) });
+    if (!saved.ok) {
+      setSavedError(saved.message);
+      return;
+    }
+
+    try {
+      await snapshotRules(saved.value.id);
+    } catch {
+      await deleteSaved(saved.value.id);
+      setSavedError("Saved-request storage is unavailable in this browser.");
+      await refreshSaved();
+      return;
+    }
+
+    setSavedError(null);
+    await refreshSaved();
+    setSaveOpen(false);
   }
 
-  function handleOpenSaved(request: SavedRequest) {
-    useRequestStore.getState().loadSpec(fromSavedSnapshot(request.spec));
+  async function handleOpenSaved(request: SavedRequest) {
+    try {
+      const applied = await loadRules(request.id);
+      if (!applied) return;
+      useRequestStore.getState().loadSpec(fromSavedSnapshot(request.spec));
+      setSavedError(null);
+    } catch {
+      setSavedError("Saved-request storage is unavailable in this browser.");
+    }
   }
 
   useCoreCommands({

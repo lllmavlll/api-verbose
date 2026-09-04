@@ -1,8 +1,14 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it } from "vitest";
+import { beforeEach, expect, it } from "vitest";
+
+import { useAssertionsStore } from "@/lib/store/assertions-store";
 
 import { ResponsePanel } from "./response-panel";
+
+beforeEach(() => {
+  useAssertionsStore.setState({ requestRef: "draft", rules: [] });
+});
 
 it("renders a status line and pretty JSON on success", async () => {
   render(
@@ -108,6 +114,49 @@ it("labels response Headers and Cookies tabs with row counts", () => {
   expect(
     within(responseViews).getByRole("tab", { name: "Cookies 1" }),
   ).toBeInTheDocument();
+});
+
+it("renders a shadcn badge whose visible Tests count follows the rule set", () => {
+  useAssertionsStore.setState({
+    requestRef: "draft",
+    rules: [
+      {
+        id: "one",
+        requestRef: "draft",
+        kind: "status",
+        operator: "==",
+        expected: "200",
+      },
+      {
+        id: "two",
+        requestRef: "draft",
+        kind: "time",
+        operator: "<",
+        expected: "500",
+      },
+    ],
+  });
+  render(<ResponsePanel pending={false} result={tabSuccess} />);
+
+  const testsTab = screen.getByRole("tab", { name: "Tests 2" });
+  expect(within(testsTab).getByText("2")).toHaveAttribute("data-slot", "badge");
+
+  act(() => {
+    useAssertionsStore.setState(({ rules }) => ({
+      rules: [
+        ...rules,
+        {
+          id: "three",
+          requestRef: "draft",
+          kind: "status",
+          operator: "==",
+          expected: "204",
+        },
+      ],
+    }));
+  });
+
+  expect(screen.getByRole("tab", { name: "Tests 3" })).toBeInTheDocument();
 });
 
 it("shows headers and parsed cookies in their response tabs", async () => {

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { RequestSpec, SendResult } from "@/lib/http/types";
 
-import { db } from "./db";
+import { db, getRulesFor, putRule } from "./db";
 import {
   HISTORY_CAP,
   addEntry,
@@ -37,6 +37,7 @@ const ok: SendResult = {
 
 beforeEach(async () => {
   await db.history.clear();
+  await db.assertions.clear();
 });
 
 describe("history data access", () => {
@@ -85,7 +86,16 @@ describe("history data access", () => {
   });
 
   it("keeps only the newest entries when writes exceed the cap", async () => {
-    for (let index = 0; index < HISTORY_CAP + 5; index += 1) {
+    const oldest = await addEntry(spec("https://a.test/0"), ok, 0);
+    await putRule({
+      id: "oldest-rule",
+      requestRef: oldest.id,
+      kind: "status",
+      operator: "==",
+      expected: "200",
+    });
+
+    for (let index = 1; index < HISTORY_CAP + 5; index += 1) {
       await addEntry(spec(`https://a.test/${index}`), ok, index);
     }
 
@@ -93,6 +103,7 @@ describe("history data access", () => {
     expect(rows).toHaveLength(HISTORY_CAP);
     expect(rows[0].spec.url).toBe(`https://a.test/${HISTORY_CAP + 4}`);
     expect(rows.some((row) => row.spec.url === "https://a.test/0")).toBe(false);
+    expect(await getRulesFor(oldest.id)).toEqual([]);
   });
 
   it("keeps concurrent sends as independent entries", async () => {
@@ -105,9 +116,25 @@ describe("history data access", () => {
   });
 
   it("clears all entries while leaving the table usable", async () => {
-    await addEntry(spec("https://a.test/x"), ok, 1_000);
+    const entry = await addEntry(spec("https://a.test/x"), ok, 1_000);
+    await putRule({
+      id: "history-rule",
+      requestRef: entry.id,
+      kind: "status",
+      operator: "==",
+      expected: "200",
+    });
+    await putRule({
+      id: "draft-rule",
+      requestRef: "draft",
+      kind: "status",
+      operator: "==",
+      expected: "201",
+    });
     await clearHistory();
     expect(await listHistory()).toEqual([]);
+    expect(await getRulesFor(entry.id)).toEqual([]);
+    expect(await getRulesFor("draft")).toHaveLength(1);
 
     await addEntry(spec("https://a.test/y"), ok, 2_000);
     expect(await listHistory()).toHaveLength(1);

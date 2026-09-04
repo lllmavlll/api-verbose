@@ -1,11 +1,18 @@
 import "fake-indexeddb/auto";
 
 import { beforeEach, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { clearCommands } from "@/lib/commands";
-import { db } from "@/lib/db/db";
+import { db, getRulesFor, putRule } from "@/lib/db/db";
 import type { RequestSpec } from "@/lib/http/types";
 
 const { sendRequest } = vi.hoisted(() => ({
@@ -27,8 +34,11 @@ const { sendRequest } = vi.hoisted(() => ({
 vi.mock("@/lib/http/send-request", () => ({ sendRequest }));
 
 import { useRequestStore } from "@/lib/store/request-store";
+import { useAssertionsStore } from "@/lib/store/assertions-store";
 
 import Page from "./page";
+
+const realLoadRules = useAssertionsStore.getState().loadRules;
 
 beforeEach(async () => {
   clearCommands();
@@ -37,6 +47,12 @@ beforeEach(async () => {
   vi.restoreAllMocks();
   await db.savedRequests.clear();
   await db.collections.clear();
+  await db.assertions.clear();
+  useAssertionsStore.setState({
+    requestRef: "draft",
+    rules: [],
+    loadRules: realLoadRules,
+  });
 });
 
 it("keeps curl controls available alongside the command palette", async () => {
@@ -192,4 +208,113 @@ it("surfaces a saved-request write failure and preserves the workbench", async (
     .toBeInTheDocument();
   expect(useRequestStore.getState().spec).toEqual(spec);
   expect(dialog).toBeInTheDocument();
+});
+
+it("saves the active rules with a request and restores them when it opens", async () => {
+  const rule = {
+    id: "draft-rule",
+    requestRef: "draft",
+    kind: "status" as const,
+    operator: "==" as const,
+    expected: "200",
+  };
+  await putRule(rule);
+  useAssertionsStore.setState({ requestRef: "draft", rules: [rule] });
+  useRequestStore.getState().setUrl("https://saved.test/asserted");
+  const user = userEvent.setup();
+  render(<Page />);
+
+  await user.click(screen.getByRole("button", { name: /save request/i }));
+  await user.click(
+    within(screen.getByRole("dialog", { name: /save request/i })).getByRole(
+      "button",
+      { name: /^save$/i },
+    ),
+  );
+
+  let savedId = "";
+  await waitFor(async () => {
+    const [saved] = await db.savedRequests.toArray();
+    expect(saved).toBeDefined();
+    savedId = saved.id;
+    expect(await getRulesFor(saved.id)).toEqual([
+      expect.objectContaining({ expected: "200", requestRef: saved.id }),
+    ]);
+  });
+
+  await useAssertionsStore
+    .getState()
+    .updateRule("draft-rule", { expected: "500" });
+  await user.click(
+    screen.getByRole("button", { name: /open get get saved\.test\/asserted/i }),
+  );
+  await user.click(screen.getByRole("tab", { name: /tests/i }));
+
+  await waitFor(() => {
+    expect(useAssertionsStore.getState().requestRef).toBe(savedId);
+    expect(
+      screen.getByRole("textbox", { name: "Expected value" }),
+    ).toHaveValue("200");
+  });
+});
+
+it("keeps the newest saved request when overlapping rule loads finish out of order", async () => {
+  let resolveFirst!: (applied: boolean) => void;
+  let resolveSecond!: (applied: boolean) => void;
+  const loadRules = vi.fn((requestRef: string) => {
+    return new Promise<boolean>((resolve) => {
+      if (requestRef === "saved-first") resolveFirst = resolve;
+      if (requestRef === "saved-second") resolveSecond = resolve;
+    });
+  });
+  useAssertionsStore.setState({ loadRules });
+  await db.savedRequests.bulkPut([
+    {
+      id: "saved-first",
+      name: "First",
+      collectionId: null,
+      spec: {
+        method: "GET",
+        url: "https://saved.test/first",
+        params: [],
+        headers: [],
+        auth: { kind: "none" },
+        body: { kind: "none" },
+      },
+    },
+    {
+      id: "saved-second",
+      name: "Second",
+      collectionId: null,
+      spec: {
+        method: "GET",
+        url: "https://saved.test/second",
+        params: [],
+        headers: [],
+        auth: { kind: "none" },
+        body: { kind: "none" },
+      },
+    },
+  ]);
+  const user = userEvent.setup();
+  render(<Page />);
+
+  const first = await screen.findByRole("button", { name: /open get first/i });
+  const second = screen.getByRole("button", { name: /open get second/i });
+  await user.click(first);
+  await user.click(second);
+  resolveSecond(true);
+  await waitFor(() =>
+    expect(useRequestStore.getState().spec.url).toBe(
+      "https://saved.test/second",
+    ),
+  );
+  await act(async () => {
+    resolveFirst(false);
+    await Promise.resolve();
+  });
+
+  expect(useRequestStore.getState().spec.url).toBe(
+    "https://saved.test/second",
+  );
 });

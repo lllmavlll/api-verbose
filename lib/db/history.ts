@@ -60,7 +60,7 @@ export async function addEntry(
     result: toSummary(result, measuredTimeMs),
   };
 
-  await db.transaction("rw", db.history, async () => {
+  await db.transaction("rw", db.history, db.assertions, async () => {
     await db.history.put(entry);
 
     const overflow = (await db.history.count()) - HISTORY_CAP;
@@ -70,6 +70,7 @@ export async function addEntry(
         .limit(overflow)
         .primaryKeys();
       await db.history.bulkDelete(oldestIds);
+      await db.assertions.where("requestRef").anyOf(oldestIds).delete();
     }
   });
 
@@ -89,7 +90,13 @@ export async function listHistory(
 }
 
 export async function clearHistory(): Promise<void> {
-  await db.history.clear();
+  await db.transaction("rw", db.history, db.assertions, async () => {
+    const requestRefs = await db.history.toCollection().primaryKeys();
+    await db.history.clear();
+    if (requestRefs.length > 0) {
+      await db.assertions.where("requestRef").anyOf(requestRefs).delete();
+    }
+  });
 }
 
 export async function exportHistoryJson(): Promise<string> {

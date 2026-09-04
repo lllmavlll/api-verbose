@@ -43,6 +43,7 @@ import {
   subscribeToHistoryStorage,
 } from "@/lib/db/storage-status";
 import { methodColorClass } from "@/lib/http/method-color";
+import { useAssertionsStore } from "@/lib/store/assertions-store";
 import { useRequestStore } from "@/lib/store/request-store";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +79,7 @@ export function HistoryPanel() {
   const reset = useRequestStore((state) => state.reset);
   const setMethod = useRequestStore((state) => state.setMethod);
   const setUrl = useRequestStore((state) => state.setUrl);
+  const loadRules = useAssertionsStore((state) => state.loadRules);
   const entries = useLiveQuery(async () => {
     try {
       const rows = await listHistory({ search });
@@ -104,16 +106,24 @@ export function HistoryPanel() {
     historyIndexRef.current = -1;
   }, [entries]);
 
-  const replay = useCallback((entry: HistoryEntry) => {
+  const replay = useCallback(async (entry: HistoryEntry) => {
     const urlInput = document.querySelector<HTMLInputElement>("#request-url");
     urlInput?.blur();
+    try {
+      const applied = await loadRules(entry.id);
+      if (!applied) return;
+      setHistoryStorageReadUnavailable(false);
+    } catch {
+      setHistoryStorageReadUnavailable(true);
+      return;
+    }
     reset();
     setMethod(entry.spec.method);
     setUrl(entry.spec.url);
     window.requestAnimationFrame(() => {
       urlInput?.focus();
     });
-  }, [reset, setMethod, setUrl]);
+  }, [loadRules, reset, setMethod, setUrl]);
 
   useEffect(() => {
     if (!hasEntries) return;
@@ -131,7 +141,7 @@ export function HistoryPanel() {
           historyIndexRef.current + 1,
           rows.length - 1,
         );
-        replay(rows[historyIndexRef.current]);
+        void replay(rows[historyIndexRef.current]);
       },
     });
     const disposeNext = registerCommand({
@@ -144,7 +154,7 @@ export function HistoryPanel() {
         const rows = entriesRef.current;
         if (rows.length === 0 || historyIndexRef.current <= 0) return;
         historyIndexRef.current -= 1;
-        replay(rows[historyIndexRef.current]);
+        void replay(rows[historyIndexRef.current]);
       },
     });
 
@@ -301,7 +311,7 @@ export function HistoryPanel() {
               </div>
               <Button
                 aria-label={`Replay ${entry.spec.method} ${entry.spec.url}`}
-                onClick={() => replay(entry)}
+                onClick={() => void replay(entry)}
                 size="icon-sm"
                 title="Replay method and URL"
                 type="button"
