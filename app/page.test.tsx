@@ -1,8 +1,11 @@
+import "fake-indexeddb/auto";
+
 import { beforeEach, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { clearCommands } from "@/lib/commands";
+import { db } from "@/lib/db/db";
 import type { RequestSpec } from "@/lib/http/types";
 
 const { sendRequest } = vi.hoisted(() => ({
@@ -27,10 +30,13 @@ import { useRequestStore } from "@/lib/store/request-store";
 
 import Page from "./page";
 
-beforeEach(() => {
+beforeEach(async () => {
   clearCommands();
   useRequestStore.getState().reset();
   sendRequest.mockClear();
+  vi.restoreAllMocks();
+  await db.savedRequests.clear();
+  await db.collections.clear();
 });
 
 it("keeps curl controls available alongside the command palette", async () => {
@@ -158,4 +164,32 @@ it("reports an incomplete percent escape instead of throwing on Send", async () 
 
   expect(sendRequest).not.toHaveBeenCalled();
   expect(screen.getByRole("alert")).toHaveTextContent(/valid.*url/i);
+});
+
+it("surfaces a saved-request write failure and preserves the workbench", async () => {
+  const spec: RequestSpec = {
+    method: "POST",
+    url: "https://keep.test/request",
+    params: [],
+    headers: [
+      { id: "secret", key: "Authorization", value: "Bearer T", enabled: true },
+    ],
+    auth: { kind: "bearer", token: "T" },
+    body: { kind: "none" },
+  };
+  useRequestStore.getState().loadSpec(spec);
+  vi.spyOn(db.savedRequests, "put").mockRejectedValueOnce(
+    new DOMException("Quota exceeded", "QuotaExceededError"),
+  );
+  const user = userEvent.setup();
+  render(<Page />);
+
+  await user.click(screen.getByRole("button", { name: /save request/i }));
+  const dialog = screen.getByRole("dialog", { name: /save request/i });
+  await user.click(within(dialog).getByRole("button", { name: /^save$/i }));
+
+  expect(await screen.findByText(/saved requests are unavailable/i))
+    .toBeInTheDocument();
+  expect(useRequestStore.getState().spec).toEqual(spec);
+  expect(dialog).toBeInTheDocument();
 });

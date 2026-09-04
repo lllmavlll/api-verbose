@@ -9,10 +9,10 @@ beforeEach(async () => {
 });
 
 describe("ApiVerboseDb", () => {
-  it("opens at version 1 with history keyed by id and indexed on at", async () => {
+  it("opens at version 2 with history keyed by id and indexed on at", async () => {
     await db.open();
 
-    expect(db.verno).toBe(1);
+    expect(db.verno).toBe(2);
     expect(db.history.schema.primKey.name).toBe("id");
     expect(db.history.schema.indexes.map((index) => index.name)).toContain("at");
   });

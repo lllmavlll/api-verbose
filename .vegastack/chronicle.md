@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 03-09-2026 — Complete requests can now live in local collections ([#9](https://github.com/dev-mahesh-peerxp/api-verbose/issues/9))
+
+- **What:** A developer can explicitly name the complete request in the workbench, keep it Ungrouped or in a one-level collection, and open it later without sending. Saved requests and even empty collections survive reloads, with rename, move, and safe collection-delete choices available from the sidebar.
+- **Why:** Automatic method-and-URL history covers quick recall, but developers also need deliberate, organized snapshots of fully configured requests for repeated work.
+- **How it went:** The shared Dexie and Zustand seams from the earlier history and request-builder work fit cleanly. Dark mode landed while this branch was in flight, so the final pass rebased the new sidebar onto its theme-aware page shell and method colors; the privacy distinction stayed visible, with automatic history stripped of secrets and explicit saves clearly documented as complete snapshots.
+- **Changed:** complete request snapshots in IndexedDB · Ungrouped and one-level collections · reload-surviving open without send · rename, move, and delete actions · default collection deletion moves requests to Ungrouped · explicit cascade choice · typed storage-failure feedback · browser coverage for the full lifecycle
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/9-saved-requests-local-collections
+
 ## 03-09-2026 — Verbose now feels at home in light and dark ([#12](https://github.com/dev-mahesh-peerxp/api-verbose/issues/12))
 
 - **What:** Verbose now follows the browser's OS theme on a first visit and offers a visible Light, Dark, or System control. Explicit choices survive reloads, method colors remain readable in either palette, and an already-visible response re-highlights when the theme changes.

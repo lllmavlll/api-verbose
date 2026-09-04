@@ -44,7 +44,7 @@ Use **Query Params** to add repeated or encoded query values; enabled rows stay 
 
 Duplicate header rows remain separate in the request model. On the direct browser path, Fetch may serialize same-name rows as one comma-joined header; transports that support physical repeated header fields can preserve them on the wire.
 
-The **Auth** panel can add a Bearer token, Basic credentials, or an API key sent as either a header or query parameter. Auth values remain in memory only and are not persisted. When an auth preset collides with a manual row, the preset wins and the overridden row is marked in the table.
+The **Auth** panel can add a Bearer token, Basic credentials, or an API key sent as either a header or query parameter. Auth values remain in memory unless you explicitly save the request; automatic history never persists them. When an auth preset collides with a manual row, the preset wins and the overridden row is marked in the table.
 
 Use **Body** to keep separate in-session drafts for JSON, URL-encoded form fields, and raw text. JSON and raw bodies use the CodeMirror editor; malformed JSON is allowed and sent exactly as typed. Verbose supplies the matching `Content-Type` automatically unless an enabled header row already sets one. Bodies are sent only for `POST`, `PUT`, `PATCH`, and `DELETE`; other methods keep the draft visible and show that it will not be sent.
 
@@ -53,6 +53,14 @@ Use **Body** to keep separate in-session drafts for JSON, URL-encoded form field
 Every resolved send is added to a browser-local history in IndexedDB, including failed attempts. History survives reloads, lists the newest request first, can be searched by method or URL, and is capped at 500 entries. Use **Replay** or the URL field's <kbd>↑</kbd>/<kbd>↓</kbd> shortcuts to restore a method and URL without sending automatically; replay clears any stale headers, auth, and body from the builder first. History can be exported as JSON or cleared after confirmation.
 
 Automatic history deliberately stores only method, URL, timestamp, and non-sensitive response metadata. It never stores credentials, arbitrary request headers, auth configuration, request bodies, or response bodies and headers. The data stays in this browser: there are no accounts, server-side persistence, or cloud sync.
+
+## Saved requests and collections
+
+Use **Save request** to give the complete request currently in the builder a name and store it explicitly in this browser. The snapshot includes its method, URL, query parameters, headers, auth values, and body, but never its response. Saved names do not need to be unique; method and URL remain visible so similarly named requests stay distinguishable.
+
+Saved requests can stay **Ungrouped** or live in one-level local collections. Open a row to replace the current builder without sending, or use its actions to rename, move, or delete it. Empty collections persist, and deleting a collection moves its requests to Ungrouped by default unless you explicitly choose the cascade-delete action.
+
+Saved requests and collections survive reloads in IndexedDB and never sync to a backend. Because an explicitly saved snapshot can contain credentials or sensitive payloads, anyone with access to that browser profile may be able to read it; use automatic history instead when you want recall limited to method, URL, and response metadata.
 
 ## Import & copy-as-code
 
