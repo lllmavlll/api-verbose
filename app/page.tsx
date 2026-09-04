@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 
+import { AppHeader } from "@/components/app-header";
 import { CopyAsCodeMenu } from "@/components/copy-as-code-menu";
 import { HistoryPanel } from "@/components/history-panel";
 import { ImportCurlDialog } from "@/components/import-curl-dialog";
@@ -15,7 +16,6 @@ import { RequestBar } from "@/components/request-bar";
 import { RequestBody } from "@/components/request-body";
 import { RequestTabs } from "@/components/request-tabs";
 import { ResponsePanel } from "@/components/response-panel";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { SavedSidebar } from "@/components/saved-sidebar";
 import { SaveRequestDialog } from "@/components/save-request-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -215,34 +215,10 @@ export default function Home() {
 
   return (
     <KeyboardProvider>
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top,var(--color-muted),transparent_42%)] px-4 py-8 sm:px-8 sm:py-12">
-        <div className="mx-auto max-w-7xl">
-          <header className="mb-8 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-            <div>
-              <p className="mb-2 font-mono text-xs tracking-[0.22em] text-muted-foreground uppercase">
-                Local-first REST client
-              </p>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Verbose
-              </h1>
-              <p className="mt-2 max-w-xl text-sm text-muted-foreground sm:text-base">
-                Send an HTTP request and read the response without an account or
-                cloud sync.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {pending ? (
-                <p
-                  aria-live="polite"
-                  className="font-mono text-sm text-muted-foreground"
-                >
-                  Sending · {Math.round(elapsedMs)} ms
-                </p>
-              ) : null}
-              <ThemeToggle />
-            </div>
-          </header>
+      <AppHeader elapsedMs={elapsedMs} pending={pending} />
 
+      <main className="min-h-[calc(100vh-5rem)] bg-[radial-gradient(circle_at_top,var(--color-muted),transparent_42%)] px-4 py-6 sm:px-8 sm:py-8">
+        <div className="mx-auto max-w-7xl">
           {savedError ? (
             <Alert className="mb-5" role="status" variant="destructive">
               <AlertTitle>Saved requests are unavailable.</AlertTitle>

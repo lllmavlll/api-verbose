@@ -4,7 +4,7 @@ Verbose is a local-first REST client for the browser. Pick an HTTP method, enter
 
 Verbose sends directly from the browser first. If an idempotent request is blocked in the CORS/network path, it falls back through the in-app relay and labels the result `via relay`. Ambiguous `POST` and `PATCH` failures are never retried automatically, avoiding duplicate writes.
 
-The interface follows the browser's light or dark OS preference on first visit. Use the theme control in the app header to choose Light, Dark, or System; an explicit choice stays local to that browser and survives reloads. Response syntax highlighting follows the active theme without requiring another request.
+The interface follows the browser's light or dark OS preference on first visit. Tap the icon-only theme control in the sticky app header to cycle through Light, Dark, and System; an explicit choice stays local to that browser and survives reloads. Response syntax highlighting follows the active theme without requiring another request.
 
 There are no accounts and no cloud sync. Request history stays in IndexedDB in the browser, and the relay does not store request or response data.
 

@@ -2,64 +2,42 @@
 
 import { Monitor, Moon, Sun } from "lucide-react";
 
-import { useTheme } from "@/components/theme-provider";
+import { type Theme, useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useHydrated } from "@/hooks/use-hydrated";
 
-const choices = [
-  { label: "Light", value: "light" },
-  { label: "Dark", value: "dark" },
-  { label: "System", value: "system" },
-] as const;
+const nextTheme: Record<Theme, Theme> = {
+  system: "light",
+  light: "dark",
+  dark: "system",
+};
+
+const themeIcon = {
+  system: Monitor,
+  light: Sun,
+  dark: Moon,
+} satisfies Record<Theme, typeof Monitor>;
+
+function isTheme(value: string | undefined): value is Theme {
+  return value === "system" || value === "light" || value === "dark";
+}
 
 export function ThemeToggle() {
-  const { resolvedTheme, setTheme, theme } = useTheme();
+  const { setTheme, theme } = useTheme();
   const hydrated = useHydrated();
-  const activeTheme = hydrated ? resolvedTheme : undefined;
-  const selectedTheme = hydrated ? theme : undefined;
-  const Icon =
-    selectedTheme === "system"
-      ? Monitor
-      : activeTheme === "light"
-        ? Sun
-        : activeTheme === "dark"
-          ? Moon
-          : Monitor;
+  const selectedTheme = hydrated && isTheme(theme) ? theme : "system";
+  const upcomingTheme = nextTheme[selectedTheme];
+  const Icon = themeIcon[selectedTheme];
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            aria-label={`Toggle theme${selectedTheme ? `, current ${selectedTheme}` : ""}`}
-            className={selectedTheme === "system" ? "w-auto px-3" : undefined}
-            size="icon"
-            type="button"
-            variant="outline"
-          />
-        }
-      >
-        <Icon aria-hidden />
-        {selectedTheme === "system" ? (
-          <span className="text-xs">System</span>
-        ) : null}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {choices.map((choice) => (
-          <DropdownMenuItem
-            key={choice.value}
-            onClick={() => setTheme(choice.value)}
-          >
-            {choice.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button
+      aria-label={`Toggle theme, current ${selectedTheme}, next ${upcomingTheme}`}
+      onClick={() => setTheme(upcomingTheme)}
+      size="icon"
+      type="button"
+      variant="outline"
+    >
+      <Icon aria-hidden />
+    </Button>
   );
 }

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- A sticky app header with an icon-only tap-to-cycle theme control, a sticky desktop Saved Requests rail, reliably applied Geist typography, warmer light surfaces, and higher-contrast Pretty responses.
 - MIT license and an honest README with real local screenshots, setup instructions, and Node-compatible self-hosting guidance.
 - Save complete requests explicitly and organize them into browser-local collections that persist in IndexedDB.
 - Dark/light/system theming with an OS-aware first visit, persisted toggle, and theme-aware response highlighting.

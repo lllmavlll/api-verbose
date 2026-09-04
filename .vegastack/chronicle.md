@@ -2,6 +2,16 @@
 
 Entries follow the `dev-chronicle` skill format, newest first.
 
+## 04-09-2026 — Verbose is warmer, smoother, and easier to read ([#27](https://github.com/dev-mahesh-peerxp/api-verbose/issues/27))
+
+- **What:** The product title, description, send status, and icon-only theme control now live in a distinct app header that stays at the top while the workbench scrolls. The Saved Requests rail stays in reach on desktop, light mode has a warmer neutral canvas, the existing Geist typeface reliably replaces the accidental serif fallback, and Pretty responses sit on a defined high-contrast code surface.
+- **Why:** The interface felt colder and less polished than intended, while highlighted response text could become too faint to read comfortably against the light background.
+- **How it went:** The supplied screenshot came from a stale local `main`, so syncing first revealed that header theming and Shiki CSS variables had already shipped. Review hardened the behavior-level contrast coverage, then operator feedback clarified that “header” meant sticky app chrome and that the theme control should cycle directly instead of opening a menu.
+- **Changed:** sticky app header · icon-only System/Light/Dark tap cycle · sticky desktop Saved Requests rail · Geist interface typography · warm light canvas and surfaces · bordered Pretty code surface · stronger response-tab states · browser-enforced 4.5:1 syntax contrast
+- **Decisions:** none
+
+— approved by (dev-mahesh-peerxp) · built by Codex · branch feat/27-refine-app-header-typography-pretty-contrast
+
 ## 03-09-2026 — Each response can prove the checks that matter ([#11](https://github.com/dev-mahesh-peerxp/api-verbose/issues/11))
 
 - **What:** A developer can add status, JSONPath, and response-time rules in a dedicated Tests tab and see them run automatically against each completed response. The panel keeps rule order, explains actual versus expected failures, and turns invalid paths, non-JSON bodies, and failed sends into readable states instead of crashes.

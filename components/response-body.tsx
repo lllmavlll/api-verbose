@@ -186,12 +186,18 @@ export function ResponseBody({ result }: { result: SendSuccess }) {
           variant="line"
         >
           <TabsTrigger
+            className="text-foreground/70 data-active:text-foreground"
             disabled={!highlightable}
             value="pretty"
           >
             Pretty
           </TabsTrigger>
-          <TabsTrigger value="raw">Raw</TabsTrigger>
+          <TabsTrigger
+            className="text-foreground/70 data-active:text-foreground"
+            value="raw"
+          >
+            Raw
+          </TabsTrigger>
           {previewKind ? (
             <TabsTrigger value="preview">Preview</TabsTrigger>
           ) : (
@@ -207,6 +213,7 @@ export function ResponseBody({ result }: { result: SendSuccess }) {
                   }
                 >
                   <TabsTrigger
+                    className="text-foreground/70"
                     disabled
                     value="preview"
                   >
@@ -221,7 +228,11 @@ export function ResponseBody({ result }: { result: SendSuccess }) {
           )}
         </TabsList>
 
-        <TabsContent className="px-4 pb-4 pt-3" value="pretty">
+        <TabsContent
+          className="mx-4 mt-3 mb-4 rounded-lg border bg-[var(--response-code-background)] p-4"
+          data-response-code-surface=""
+          value="pretty"
+        >
           {highlightedHtml ? (
             <div
               className="max-h-[60vh] overflow-auto [&_.shiki]:min-h-full [&_.shiki]:overflow-auto [&_.shiki]:bg-transparent! [&_.shiki]:font-mono [&_.shiki]:text-sm [&_.shiki]:leading-6"

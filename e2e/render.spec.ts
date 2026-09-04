@@ -38,8 +38,11 @@ test("JSON renders highlighted in both themes and toggles to byte-exact Raw", as
     });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: /toggle theme/i }).click();
-  await page.getByRole("menuitem", { name: /^dark$/i }).click();
+  const themeToggle = page.getByRole("button", { name: /toggle theme/i });
+  await themeToggle.click();
+  await expect(page.locator("html")).toHaveClass(/light/);
+  await themeToggle.click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
 
   await send(page, "https://api.test/echo");
   const highlighted = page.locator("pre.shiki");
@@ -52,8 +55,10 @@ test("JSON renders highlighted in both themes and toggles to byte-exact Raw", as
   );
   await screenshot(page, "render-pretty-dark.png");
 
-  await page.getByRole("button", { name: /toggle theme/i }).click();
-  await page.getByRole("menuitem", { name: /^light$/i }).click();
+  await themeToggle.click();
+  await expect(themeToggle).toHaveAccessibleName(/current system/i);
+  await themeToggle.click();
+  await expect(page.locator("html")).toHaveClass(/light/);
   await expect
     .poll(() => keyword.evaluate((element) => getComputedStyle(element).color))
     .not.toBe(darkColor);

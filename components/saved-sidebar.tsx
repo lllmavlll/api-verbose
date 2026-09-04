@@ -189,7 +189,7 @@ export function SavedSidebar({
   return (
     <section
       aria-labelledby="saved-heading"
-      className="rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur sm:p-5"
+      className="rounded-xl border bg-card/90 p-4 shadow-sm backdrop-blur sm:p-5 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
     >
       <div className="flex items-center justify-between gap-3">
         <div>
