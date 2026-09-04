@@ -6,6 +6,18 @@ Verbose sends directly from the browser first. If an idempotent request is block
 
 The interface follows the browser's light or dark OS preference on first visit. Use the theme control in the app header to choose Light, Dark, or System; an explicit choice stays local to that browser and survives reloads. Response syntax highlighting follows the active theme without requiring another request.
 
+There are no accounts and no cloud sync. Request history stays in IndexedDB in the browser, and the relay does not store request or response data.
+
+## Screenshots
+
+![Verbose request workbench before a request is sent](./docs/screenshots/idle.png)
+
+_The local request workbench._
+
+![Verbose showing a successful JSON response](./docs/screenshots/success.png)
+
+_A successful request with the formatted response._
+
 ## Response views
 
 - **Pretty** formats JSON and applies theme-aware Shiki highlighting to JSON, HTML, and XML responses.
@@ -17,7 +29,7 @@ Every successful response also exposes counted **Headers** and **Cookies** tabs.
 
 - **Tests** attaches per-request status, JSONPath, and response-time rules that auto-run after each completed send, with a compact pass/fail panel. Rule edits stay in browser-local IndexedDB, malformed or unmatched JSONPath expressions become readable failures, and a request that does not complete is clearly marked as not run.
 
-Screenshots: [Pretty (dark)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-dark.png) · [Pretty (light)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-light.png) · [Raw](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-raw.png) · [sandboxed HTML Preview](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-preview-html.png) · [redirect chain](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-redirect-chain.png)
+More response-view evidence: [Pretty (dark)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-dark.png) · [Pretty (light)](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-pretty-light.png) · [Raw](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-raw.png) · [sandboxed HTML Preview](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-preview-html.png) · [redirect chain](https://github.com/vegastack/agent-dev-review-evidence/blob/main/api-verbose/6/20260903T085942Z-render-redirect-chain.png)
 
 ## Run locally
 
@@ -37,6 +49,8 @@ Open [http://localhost:3000](http://localhost:3000), enter an endpoint such as `
 | Focus URL | <kbd>⌘</kbd>+<kbd>\\</kbd> | <kbd>Ctrl</kbd>+<kbd>\\</kbd> |
 | Show active shortcuts | <kbd>?</kbd> | <kbd>?</kbd> |
 | Recall history while URL is focused | <kbd>↑</kbd> / <kbd>↓</kbd> | <kbd>↑</kbd> / <kbd>↓</kbd> |
+
+## Self-host the relay
 
 The relay is a Node-runtime Next.js Route Handler in this same app. It needs no separate service, account, persistence, or secrets. Self-host on a Node-compatible Next.js runtime: the relay relies on Node DNS and HTTP(S) connection controls to pin every request and redirect to the public address it validated while preserving the target hostname for Host/SNI.
 
@@ -77,6 +91,14 @@ npm test
 npm run build
 npx playwright test
 ```
+
+## Live demo
+
+_Demo link added at launch._
+
+## License
+
+Verbose is available under the [MIT License](./LICENSE).
 
 Third-party weak-copyleft exceptions and release-time obligations are recorded
 in [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md). Run

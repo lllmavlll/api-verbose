@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- MIT license and an honest README with real local screenshots, setup instructions, and Node-compatible self-hosting guidance.
 - Save complete requests explicitly and organize them into browser-local collections that persist in IndexedDB.
 - Dark/light/system theming with an OS-aware first visit, persisted toggle, and theme-aware response highlighting.
 - Response assertions: per-request status / JSONPath / response-time rules with an auto-run pass/fail panel and browser-local persistence across history replay and explicit saved requests.
